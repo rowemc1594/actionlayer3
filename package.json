@@ -1,0 +1,12 @@
+{
+  "name": "actionlayer3",
+  "version": "0.1.0",
+  "description": "Chrome extension to wrap ChatGPT Web, extract tasks, and manage memory anchors.",
+  "main": "src/background.js",
+  "scripts": {
+    "start": "echo \"No dev server configured; load in Chrome manually.\""
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {}
+}
