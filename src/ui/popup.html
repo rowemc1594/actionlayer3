@@ -1,170 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ActionLayer3</title>
-  <link rel="stylesheet" href="popup.css">
+  <style>
+    /* Inline minimal styling just so I don't have to import a CSS file */
+    body { font-family: Arial, sans-serif; margin: 0; padding: 8px; width: 300px; }
+    h1 { font-size: 18px; margin-bottom: 8px; display: flex; justify-content: space-between; }
+    h1 span.version { font-size: 12px; color: gray; }
+    .button-row { display: flex; gap: 4px; margin-bottom: 12px; }
+    button { padding: 4px 8px; font-size: 12px; cursor: pointer; }
+    .popup-nav { display: flex; gap: 4px; margin-bottom: 8px; }
+    .nav-tab { flex: 1; text-align: center; font-size: 14px; padding: 6px; cursor: pointer; border-bottom: 2px solid transparent; }
+    .nav-tab.active { border-bottom-color: #007acc; font-weight: bold; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    ul { list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; }
+    li { padding: 6px; border-bottom: 1px solid #eee; font-size: 13px; cursor: pointer; }
+    .empty-state { padding: 8px; color: gray; font-size: 13px; text-align: center; }
+    input[type="text"] { width: 100%; box-sizing: border-box; padding: 6px; font-size: 13px; margin-bottom: 4px; }
+  </style>
 </head>
 <body>
-  <div class="popup-container">
-    <!-- Header -->
-    <header class="popup-header">
-      <div class="header-title">
-        <h1>ActionLayer3</h1>
-        <span class="version">v1.0.0</span>
-      </div>
-      <div class="header-actions">
-        <button id="refreshBtn" class="icon-btn" title="Refresh tasks">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="23 4 23 10 17 10"></polyline>
-            <polyline points="1 20 1 14 7 14"></polyline>
-            <path d="m3 18 7-7-7-7"></path>
-            <path d="m21 6-7 7 7 7"></path>
-          </svg>
-        </button>
-        <button id="settingsBtn" class="icon-btn" title="Settings">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="m12 1 1.5 3.5L17 3l-.5 3.5L20 8l-3.5 1.5L18 13l-3.5-.5L13 16l-1.5-3.5L8 14l.5-3.5L5 9l3.5-1.5L7 4l3.5.5L12 1z"></path>
-          </svg>
-        </button>
-      </div>
-    </header>
+  <h1>
+    ActionLayer3
+    <span class="version">v1.0.0</span>
+  </h1>
 
-    <!-- Navigation Tabs -->
-    <nav class="popup-nav">
-      <button class="nav-tab active" data-tab="tasks">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 11l3 3L22 4"></path>
-          <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
-        </svg>
-        Tasks
-      </button>
-      <button class="nav-tab" data-tab="memory">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-          <line x1="16" y1="13" x2="8" y2="13"></line>
-          <line x1="16" y1="17" x2="8" y2="17"></line>
-          <polyline points="10 9 9 9 8 9"></polyline>
-        </svg>
-        Memory
-      </button>
-    </nav>
-
-    <!-- Main Content -->
-    <main class="popup-content">
-      <!-- Tasks Tab -->
-      <div id="tasksTab" class="tab-content active">
-        <div class="section-header">
-          <h2>Task Management</h2>
-          <button id="addTaskBtn" class="btn-primary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            Add Task
-          </button>
-        </div>
-
-        <!-- Add Task Form -->
-        <div id="addTaskForm" class="add-task-form hidden">
-          <input type="text" id="taskInput" placeholder="Enter task description..." maxlength="200">
-          <div class="form-actions">
-            <button id="saveTaskBtn" class="btn-primary">Save</button>
-            <button id="cancelTaskBtn" class="btn-secondary">Cancel</button>
-          </div>
-        </div>
-
-        <!-- Task Stats -->
-        <div class="task-stats">
-          <div class="stat-item">
-            <span class="stat-label">Total:</span>
-            <span id="totalTasks" class="stat-value">0</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Completed:</span>
-            <span id="completedTasks" class="stat-value">0</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Pending:</span>
-            <span id="pendingTasks" class="stat-value">0</span>
-          </div>
-        </div>
-
-        <!-- Task List -->
-        <div class="task-list-container">
-          <div id="taskList" class="task-list">
-            <div class="empty-state">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                <path d="M9 11l3 3L22 4"></path>
-                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
-              </svg>
-              <p>No tasks found</p>
-              <small>Add a task or extract tasks from web pages</small>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Memory Tab -->
-      <div id="memoryTab" class="tab-content">
-        <div class="section-header">
-          <h2>Memory Storage</h2>
-          <button id="clearMemoryBtn" class="btn-danger">Clear All</button>
-        </div>
-
-        <!-- Memory Stats -->
-        <div class="memory-stats">
-          <div class="stat-item">
-            <span class="stat-label">Entries:</span>
-            <span id="memoryEntries" class="stat-value">0</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Storage:</span>
-            <span id="memoryUsage" class="stat-value">0 KB</span>
-          </div>
-        </div>
-
-        <!-- Add Memory Form -->
-        <div class="add-memory-form">
-          <input type="text" id="memoryKey" placeholder="Memory key..." maxlength="50">
-          <textarea id="memoryValue" placeholder="Memory value..." rows="3" maxlength="1000"></textarea>
-          <button id="saveMemoryBtn" class="btn-primary">Save Memory</button>
-        </div>
-
-        <!-- Memory List -->
-        <div class="memory-list-container">
-          <div id="memoryList" class="memory-list">
-            <div class="empty-state">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-              </svg>
-              <p>No memories stored</p>
-              <small>Add key-value pairs to store information</small>
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
-
-    <!-- Status Bar -->
-    <footer class="popup-footer">
-      <div id="statusMessage" class="status-message"></div>
-      <div class="footer-info">
-        <span id="currentPage" class="current-page"></span>
-      </div>
-    </footer>
+  <!-- Button row for "Refresh Tasks" and "Save Memory" -->
+  <div class="button-row">
+    <button id="refresh-tasks">Refresh Tasks</button>
+    <button id="save-memory">Save Memory</button>
   </div>
 
-  <!-- Loading Overlay -->
-  <div id="loadingOverlay" class="loading-overlay hidden">
-    <div class="spinner"></div>
-    <p>Loading...</p>
+  <!-- Navigation Tabs -->
+  <div class="popup-nav">
+    <div class="nav-tab active" data-tab="tasks">Tasks</div>
+    <div class="nav-tab" data-tab="memory">Memory</div>
+  </div>
+
+  <!-- Tasks Tab Content -->
+  <div id="tasksTab" class="tab-content active">
+    <ul id="task-list">
+      <li class="empty-state">No tasks found.</li>
+    </ul>
+  </div>
+
+  <!-- Memory Tab Content -->
+  <div id="memoryTab" class="tab-content">
+    <input type="text" id="memory-input" placeholder="Enter memory note…" />
+    <ul id="memory-list">
+      <li class="empty-state">No memories saved.</li>
+    </ul>
   </div>
 
   <script src="popup.js"></script>

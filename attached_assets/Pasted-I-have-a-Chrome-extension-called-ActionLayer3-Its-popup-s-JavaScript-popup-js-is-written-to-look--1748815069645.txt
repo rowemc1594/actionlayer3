@@ -1,3 +1,102 @@
+I have a Chrome extension called ActionLayer3. Its popup’s JavaScript (popup.js) is written to look for these exact elements and IDs:
+
+A “Refresh Tasks” button with id="refresh-tasks" that, when clicked, should send
+
+js
+Copy
+Edit
+chrome.tabs.sendMessage(activeTabId, { type: "getTasks" }, …)
+and then render whatever array of tasks comes back into <ul id="task-list">.
+
+A “Save Memory” button with id="save-memory" that, when clicked, reads from the input box
+
+html
+Copy
+Edit
+<input type="text" id="memory-input" ...>
+creates an object { text, timestamp, pageUrl } for the current tab, and appends it into
+chrome.storage.local under memories, then re-renders <ul id="memory-list">.
+
+A pair of tabs for “Tasks” and “Memory”:
+
+The tab headers are <div class="nav-tab active" data-tab="tasks">Tasks</div> and <div class="nav-tab" data-tab="memory">Memory</div>.
+
+The content containers are <div id="tasksTab" class="tab-content active">…</div> and <div id="memoryTab" class="tab-content">…</div>.
+
+Clicking the “Tasks” tab should add/remove the active class on the correct .nav-tab and .tab-content elements so only the “Tasks” content is visible, and similarly for “Memory.”
+
+I need two files:
+
+1. popup.html (placed at src/ui/popup.html), which must include exactly:
+
+html
+Copy
+Edit
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ActionLayer3</title>
+  <style>
+    /* Inline minimal styling just so I don’t have to import a CSS file */
+    body { font-family: Arial, sans-serif; margin: 0; padding: 8px; width: 300px; }
+    h1 { font-size: 18px; margin-bottom: 8px; display: flex; justify-content: space-between; }
+    h1 span.version { font-size: 12px; color: gray; }
+    .button-row { display: flex; gap: 4px; margin-bottom: 12px; }
+    button { padding: 4px 8px; font-size: 12px; cursor: pointer; }
+    .popup-nav { display: flex; gap: 4px; margin-bottom: 8px; }
+    .nav-tab { flex: 1; text-align: center; font-size: 14px; padding: 6px; cursor: pointer; border-bottom: 2px solid transparent; }
+    .nav-tab.active { border-bottom-color: #007acc; font-weight: bold; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    ul { list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; }
+    li { padding: 6px; border-bottom: 1px solid #eee; font-size: 13px; cursor: pointer; }
+    .empty-state { padding: 8px; color: gray; font-size: 13px; text-align: center; }
+    input[type="text"] { width: 100%; box-sizing: border-box; padding: 6px; font-size: 13px; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <h1>
+    ActionLayer3
+    <span class="version">v1.0.0</span>
+  </h1>
+
+  <!-- Button row for “Refresh Tasks” and “Save Memory” -->
+  <div class="button-row">
+    <button id="refresh-tasks">Refresh Tasks</button>
+    <button id="save-memory">Save Memory</button>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="popup-nav">
+    <div class="nav-tab active" data-tab="tasks">Tasks</div>
+    <div class="nav-tab" data-tab="memory">Memory</div>
+  </div>
+
+  <!-- Tasks Tab Content -->
+  <div id="tasksTab" class="tab-content active">
+    <ul id="task-list">
+      <li class="empty-state">No tasks found.</li>
+    </ul>
+  </div>
+
+  <!-- Memory Tab Content -->
+  <div id="memoryTab" class="tab-content">
+    <input type="text" id="memory-input" placeholder="Enter memory note…" />
+    <ul id="memory-list">
+      <li class="empty-state">No memories saved.</li>
+    </ul>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
+2. popup.js (placed at src/ui/popup.js), which must exactly correspond to those IDs and tabs:
+
+js
+Copy
+Edit
 // src/ui/popup.js
 console.log("[ActionLayer3] Popup initializing…");
 
@@ -149,3 +248,4 @@ class ActionLayer3Popup {
 document.addEventListener("DOMContentLoaded", () => {
   new ActionLayer3Popup();
 });
+6. Now push these two files to GitHub, reload in Replit, and export
