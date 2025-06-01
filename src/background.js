@@ -1,0 +1,438 @@
+/**
+ * ActionLayer3 Background Service Worker
+ * Manages extension lifecycle and cross-tab communication
+ */
+
+class ActionLayer3Background {
+  constructor() {
+    this.isInitialized = false;
+    this.tabTasks = new Map(); // Store tasks per tab
+    this.init();
+  }
+
+  /**
+   * Initialize background service worker
+   */
+  async init() {
+    try {
+      if (this.isInitialized) return;
+
+      console.log('[ActionLayer3] Background service worker initializing...');
+      
+      this.setupEventListeners();
+      this.setupContextMenus();
+      await this.initializeStorage();
+      
+      this.isInitialized = true;
+      console.log('[ActionLayer3] Background service worker initialized');
+    } catch (error) {
+      console.error('[ActionLayer3] Background initialization failed:', error);
+    }
+  }
+
+  /**
+   * Setup event listeners
+   */
+  setupEventListeners() {
+    // Extension installation/update
+    chrome.runtime.onInstalled.addListener((details) => {
+      console.log('[ActionLayer3] Extension installed/updated:', details.reason);
+      this.handleInstallation(details);
+    });
+
+    // Message handling
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      this.handleMessage(request, sender, sendResponse);
+      return true; // Keep message channel open for async responses
+    });
+
+    // Tab updates
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+      if (changeInfo.status === 'complete') {
+        this.handleTabUpdate(tabId, tab);
+      }
+    });
+
+    // Tab removal
+    chrome.tabs.onRemoved.addListener((tabId) => {
+      this.tabTasks.delete(tabId);
+    });
+
+    // Extension startup
+    chrome.runtime.onStartup.addListener(() => {
+      console.log('[ActionLayer3] Extension startup');
+      this.handleStartup();
+    });
+  }
+
+  /**
+   * Setup context menus
+   */
+  setupContextMenus() {
+    try {
+      chrome.contextMenus.create({
+        id: 'actionlayer3-extract-tasks',
+        title: 'Extract tasks from this page',
+        contexts: ['page']
+      });
+
+      chrome.contextMenus.create({
+        id: 'actionlayer3-add-task',
+        title: 'Add selected text as task',
+        contexts: ['selection']
+      });
+
+      chrome.contextMenus.onClicked.addListener((info, tab) => {
+        this.handleContextMenuClick(info, tab);
+      });
+    } catch (error) {
+      console.error('[ActionLayer3] Context menu setup failed:', error);
+    }
+  }
+
+  /**
+   * Initialize storage with default values
+   */
+  async initializeStorage() {
+    try {
+      const result = await chrome.storage.local.get(['settings', 'tasks', 'memory']);
+      
+      if (!result.settings) {
+        await chrome.storage.local.set({
+          settings: {
+            autoExtract: true,
+            notifications: true,
+            theme: 'auto',
+            extractDelay: 1000
+          }
+        });
+      }
+
+      if (!result.tasks) {
+        await chrome.storage.local.set({ tasks: [] });
+      }
+
+      if (!result.memory) {
+        await chrome.storage.local.set({ memory: {} });
+      }
+
+      console.log('[ActionLayer3] Storage initialized');
+    } catch (error) {
+      console.error('[ActionLayer3] Storage initialization failed:', error);
+    }
+  }
+
+  /**
+   * Handle incoming messages
+   */
+  async handleMessage(request, sender, sendResponse) {
+    try {
+      const { action, data } = request;
+      
+      switch (action) {
+        case 'tasksExtracted':
+          await this.handleTasksExtracted(request.tasks, request.pageInfo, sender.tab);
+          sendResponse({ success: true });
+          break;
+
+        case 'getTasks':
+          const tasks = await this.getTasks();
+          sendResponse({ tasks });
+          break;
+
+        case 'addTask':
+          const newTask = await this.addTask(data);
+          sendResponse({ task: newTask });
+          break;
+
+        case 'updateTask':
+          const updatedTask = await this.updateTask(data);
+          sendResponse({ task: updatedTask });
+          break;
+
+        case 'deleteTask':
+          await this.deleteTask(data.taskId);
+          sendResponse({ success: true });
+          break;
+
+        case 'getMemory':
+          const memory = await this.getMemory(data.key);
+          sendResponse({ memory });
+          break;
+
+        case 'setMemory':
+          await this.setMemory(data.key, data.value);
+          sendResponse({ success: true });
+          break;
+
+        case 'getSettings':
+          const settings = await this.getSettings();
+          sendResponse({ settings });
+          break;
+
+        case 'updateSettings':
+          await this.updateSettings(data);
+          sendResponse({ success: true });
+          break;
+
+        default:
+          sendResponse({ error: 'Unknown action' });
+      }
+    } catch (error) {
+      console.error('[ActionLayer3] Message handling error:', error);
+      sendResponse({ error: error.message });
+    }
+  }
+
+  /**
+   * Handle tasks extracted from content script
+   */
+  async handleTasksExtracted(tasks, pageInfo, tab) {
+    try {
+      if (!tab) return;
+
+      // Store tasks for this tab
+      this.tabTasks.set(tab.id, { tasks, pageInfo, extractedAt: Date.now() });
+
+      // Store tasks persistently
+      const existingTasks = await this.getTasks();
+      const newTasks = tasks.map(task => ({
+        ...task,
+        tabId: tab.id,
+        pageInfo
+      }));
+
+      await chrome.storage.local.set({
+        tasks: [...existingTasks, ...newTasks]
+      });
+
+      // Send notification if enabled
+      const settings = await this.getSettings();
+      if (settings.notifications && tasks.length > 0) {
+        this.showNotification(`Found ${tasks.length} task(s) on ${pageInfo.domain}`);
+      }
+
+      console.log(`[ActionLayer3] Extracted ${tasks.length} tasks from ${pageInfo.url}`);
+    } catch (error) {
+      console.error('[ActionLayer3] Failed to handle extracted tasks:', error);
+    }
+  }
+
+  /**
+   * Handle extension installation
+   */
+  handleInstallation(details) {
+    if (details.reason === 'install') {
+      // Show welcome notification
+      this.showNotification('ActionLayer3 installed! Click the icon to get started.');
+    }
+  }
+
+  /**
+   * Handle tab updates
+   */
+  async handleTabUpdate(tabId, tab) {
+    try {
+      const settings = await this.getSettings();
+      if (settings.autoExtract && tab.url && !tab.url.startsWith('chrome://')) {
+        // Delay task extraction to ensure page is loaded
+        setTimeout(() => {
+          chrome.tabs.sendMessage(tabId, { action: 'extractTasks' }).catch(() => {
+            // Ignore errors for tabs that don't have content script
+          });
+        }, settings.extractDelay || 1000);
+      }
+    } catch (error) {
+      console.error('[ActionLayer3] Tab update handling failed:', error);
+    }
+  }
+
+  /**
+   * Handle extension startup
+   */
+  handleStartup() {
+    // Clean up old tab data
+    this.tabTasks.clear();
+  }
+
+  /**
+   * Handle context menu clicks
+   */
+  async handleContextMenuClick(info, tab) {
+    try {
+      switch (info.menuItemId) {
+        case 'actionlayer3-extract-tasks':
+          chrome.tabs.sendMessage(tab.id, { action: 'extractTasks' });
+          break;
+
+        case 'actionlayer3-add-task':
+          if (info.selectionText) {
+            await this.addTask({
+              text: info.selectionText.trim(),
+              url: tab.url,
+              domain: new URL(tab.url).hostname,
+              completed: false
+            });
+            this.showNotification('Task added from selection');
+          }
+          break;
+      }
+    } catch (error) {
+      console.error('[ActionLayer3] Context menu handling failed:', error);
+    }
+  }
+
+  /**
+   * Get all tasks from storage
+   */
+  async getTasks() {
+    try {
+      const result = await chrome.storage.local.get('tasks');
+      return result.tasks || [];
+    } catch (error) {
+      console.error('[ActionLayer3] Failed to get tasks:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Add a new task
+   */
+  async addTask(taskData) {
+    try {
+      const task = {
+        id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        text: taskData.text,
+        completed: taskData.completed || false,
+        url: taskData.url || '',
+        domain: taskData.domain || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      const tasks = await this.getTasks();
+      tasks.push(task);
+      await chrome.storage.local.set({ tasks });
+
+      return task;
+    } catch (error) {
+      console.error('[ActionLayer3] Failed to add task:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update an existing task
+   */
+  async updateTask(taskData) {
+    try {
+      const tasks = await this.getTasks();
+      const taskIndex = tasks.findIndex(t => t.id === taskData.id);
+      
+      if (taskIndex === -1) {
+        throw new Error('Task not found');
+      }
+
+      tasks[taskIndex] = {
+        ...tasks[taskIndex],
+        ...taskData,
+        updatedAt: new Date().toISOString()
+      };
+
+      await chrome.storage.local.set({ tasks });
+      return tasks[taskIndex];
+    } catch (error) {
+      console.error('[ActionLayer3] Failed to update task:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a task
+   */
+  async deleteTask(taskId) {
+    try {
+      const tasks = await this.getTasks();
+      const filteredTasks = tasks.filter(t => t.id !== taskId);
+      await chrome.storage.local.set({ tasks: filteredTasks });
+    } catch (error) {
+      console.error('[ActionLayer3] Failed to delete task:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get memory value
+   */
+  async getMemory(key) {
+    try {
+      const result = await chrome.storage.local.get('memory');
+      const memory = result.memory || {};
+      return key ? memory[key] : memory;
+    } catch (error) {
+      console.error('[ActionLayer3] Failed to get memory:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Set memory value
+   */
+  async setMemory(key, value) {
+    try {
+      const result = await chrome.storage.local.get('memory');
+      const memory = result.memory || {};
+      memory[key] = value;
+      await chrome.storage.local.set({ memory });
+    } catch (error) {
+      console.error('[ActionLayer3] Failed to set memory:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get settings
+   */
+  async getSettings() {
+    try {
+      const result = await chrome.storage.local.get('settings');
+      return result.settings || {};
+    } catch (error) {
+      console.error('[ActionLayer3] Failed to get settings:', error);
+      return {};
+    }
+  }
+
+  /**
+   * Update settings
+   */
+  async updateSettings(newSettings) {
+    try {
+      const currentSettings = await this.getSettings();
+      const settings = { ...currentSettings, ...newSettings };
+      await chrome.storage.local.set({ settings });
+    } catch (error) {
+      console.error('[ActionLayer3] Failed to update settings:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Show notification
+   */
+  showNotification(message) {
+    try {
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icons/icon48.svg',
+        title: 'ActionLayer3',
+        message: message
+      });
+    } catch (error) {
+      console.error('[ActionLayer3] Failed to show notification:', error);
+    }
+  }
+}
+
+// Initialize background service worker
+const actionLayer3Background = new ActionLayer3Background();
