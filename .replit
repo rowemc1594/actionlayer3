@@ -30,3 +30,7 @@ run = ["sh", "-c", "python3 -m http.server 5000"]
 localPort = 5000
 externalPort = 80
 
+[nix]
+channel = "stable-24_05"
+packages = ["freetype", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "tcl", "tk", "zlib"]
+
