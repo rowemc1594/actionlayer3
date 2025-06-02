@@ -100,7 +100,7 @@ class ActionLayer3Popup {
     // Also try to send a message to content script if available
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const activeTab = tabs[0];
-      chrome.tabs.sendMessage(activeTab.id, { type: "extractTasks" }, (response) => {
+      chrome.tabs.sendMessage(activeTab.id, { action: "extractTasks" }, (response) => {
         if (!chrome.runtime.lastError && response && response.tasks) {
           console.log("[ActionLayer3] Content script found tasks:", response.tasks);
           chrome.storage.local.get(['tasks'], (result) => {

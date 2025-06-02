@@ -56,7 +56,10 @@ class ActionLayer3ContentScript {
       try {
         switch (request.action) {
           case 'extractTasks':
-            sendResponse({ tasks: this.extractTasks() });
+            console.log('[ActionLayer3] Content script extracting tasks...');
+            const tasks = this.extractTasks();
+            console.log('[ActionLayer3] Content script found tasks:', tasks);
+            sendResponse({ tasks: tasks });
             break;
           case 'highlightTask':
             this.highlightTask(request.taskId);
@@ -164,7 +167,10 @@ class ActionLayer3ContentScript {
    * Find potential task elements on the page
    */
   findTaskElements(root = document) {
-    const selectors = [
+    const elements = [];
+    
+    // First, look for structured task elements
+    const structuredSelectors = [
       '[data-testid*="task"]',
       '[class*="task"]',
       '[class*="todo"]',
@@ -177,8 +183,7 @@ class ActionLayer3ContentScript {
       '[data-todo]'
     ];
 
-    const elements = [];
-    selectors.forEach(selector => {
+    structuredSelectors.forEach(selector => {
       try {
         const found = root.querySelectorAll(selector);
         elements.push(...Array.from(found));
@@ -186,6 +191,10 @@ class ActionLayer3ContentScript {
         // Ignore invalid selectors
       }
     });
+    
+    // Also scan all text content for task patterns
+    const textElements = root.querySelectorAll('p, div, span, h1, h2, h3, h4, h5, h6, td, th');
+    elements.push(...Array.from(textElements));
 
     return elements.filter(el => this.isTaskElement(el));
   }
@@ -195,30 +204,38 @@ class ActionLayer3ContentScript {
    */
   isTaskElement(element) {
     if (!element || element.nodeType !== Node.ELEMENT_NODE) return false;
-
-    const text = element.textContent?.trim();
-    if (!text || text.length < 3) return false;
-
-    // Check for task-like patterns
+    
+    const text = element.textContent?.trim() || '';
+    if (text.length < 3 || text.length > 200) return false;
+    
+    // Skip navigation, header, and footer elements
+    const excludedTags = ['nav', 'header', 'footer', 'script', 'style', 'meta'];
+    if (excludedTags.includes(element.tagName.toLowerCase())) return false;
+    
+    // Check for task-like patterns in text
     const taskPatterns = [
-      /^\s*[-*•]\s+/,  // Bullet points
-      /^\s*\d+\.\s+/,  // Numbered lists
-      /^\s*\[\s*\]\s+/, // Checkboxes
-      /^\s*☐\s+/,      // Checkbox symbols
-      /todo|task|action|complete|done/i
+      /^[-*•]\s+/,  // Bullet points
+      /^\d+\.\s+/,  // Numbered lists
+      /^☐|^□|^✓|^✔|^✕/,  // Checkbox symbols
+      /\b(buy|get|call|email|send|write|read|finish|complete|do|make|create|update|fix|review|check)\b/i,
+      /\b(task|todo|assignment|action|item)\b/i,
+      /\b(need to|have to|must|should|remember to)\b/i
     ];
-
-    const hasTaskPattern = taskPatterns.some(pattern => 
-      pattern.test(text) || pattern.test(element.className) || pattern.test(element.id)
+    
+    const hasTaskPattern = taskPatterns.some(pattern => pattern.test(text));
+    
+    // Check for interactive elements (checkboxes, buttons)
+    const hasCheckbox = element.querySelector('input[type="checkbox"]') || 
+                       element.closest('label') || 
+                       element.getAttribute('role') === 'checkbox';
+    
+    // Check for task-related classes or attributes
+    const elementClasses = element.className.toLowerCase();
+    const hasTaskClass = ['task', 'todo', 'item', 'action', 'checkbox'].some(cls => 
+      elementClasses.includes(cls)
     );
-
-    // Check for interactive elements
-    const isInteractive = element.tagName === 'LI' || 
-                         element.querySelector('input[type="checkbox"]') ||
-                         element.hasAttribute('data-task') ||
-                         element.hasAttribute('data-todo');
-
-    return hasTaskPattern || isInteractive;
+    
+    return hasTaskPattern || hasCheckbox || hasTaskClass;
   }
 
   /**
