@@ -42,6 +42,16 @@ class ActionLayer3Popup {
     this.tasksTabBtn.addEventListener("click", () => this.switchTab("tasks"));
     this.memoryTabBtn.addEventListener("click", () => this.switchTab("memory"));
 
+    // 4. Manual task input
+    this.taskInput = document.getElementById("task-input");
+    this.addTaskButton = document.getElementById("add-task");
+    if (this.taskInput && this.addTaskButton) {
+      this.addTaskButton.addEventListener("click", () => this.onAddTask());
+      this.taskInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") this.onAddTask();
+      });
+    }
+
     // 4. Tab content areas
     this.tasksTabContent = document.getElementById("tasksTab");
     this.memoryTabContent = document.getElementById("memoryTab");
@@ -216,6 +226,33 @@ class ActionLayer3Popup {
         console.log("[ActionLayer3] Memory saved:", newMem);
         this.memoryInput.value = "";
         this.renderMemories(current);
+      });
+    });
+  }
+
+  onAddTask() {
+    const text = this.taskInput.value.trim();
+    if (!text) {
+      console.log("[ActionLayer3] No task text to add.");
+      return;
+    }
+    
+    const newTask = {
+      id: 'manual_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+      text: text,
+      completed: false,
+      source: 'manual_entry',
+      url: window.location.href,
+      extractedAt: new Date().toISOString()
+    };
+    
+    chrome.storage.local.get(['tasks'], (result) => {
+      const currentTasks = result.tasks || [];
+      currentTasks.push(newTask);
+      chrome.storage.local.set({ tasks: currentTasks }, () => {
+        this.taskInput.value = "";
+        this.renderTasks(currentTasks);
+        console.log("[ActionLayer3] Task added:", newTask);
       });
     });
   }
