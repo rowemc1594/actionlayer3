@@ -465,7 +465,6 @@ class ActionLayer3Background {
       
       chrome.notifications.create({
         type: 'basic',
-        iconUrl: 'icons/icon48.png',
         title: 'ActionLayer3',
         message: messageText
       }, (notificationId) => {
