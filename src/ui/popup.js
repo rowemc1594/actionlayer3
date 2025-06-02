@@ -119,30 +119,63 @@ class ActionLayer3Popup {
   // Function to extract tasks from the current page
   extractTasksFromPage() {
     const tasks = [];
-    const taskPatterns = [
-      /TODO:\s*(.+)/gi,
-      /\[ \]\s*(.+)/gi,
-      /- \[ \]\s*(.+)/gi
-    ];
     
     // Get all text from the page
     const pageText = document.body.innerText;
+    console.log('Page text for extraction:', pageText);
     
-    // Extract tasks using patterns
-    taskPatterns.forEach(pattern => {
-      let match;
-      while ((match = pattern.exec(pageText)) !== null) {
-        tasks.push({
-          id: 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-          text: match[1].trim(),
-          completed: false,
-          source: 'page_extraction',
-          url: window.location.href,
-          extractedAt: new Date().toISOString()
-        });
+    // More flexible task patterns
+    const taskPatterns = [
+      /TODO:\s*(.+?)(?:\n|$)/gi,
+      /todo:\s*(.+?)(?:\n|$)/gi,
+      /\[ \]\s*(.+?)(?:\n|$)/gi,
+      /- \[ \]\s*(.+?)(?:\n|$)/gi,
+      /•\s*(.+?)(?:\n|$)/gi
+    ];
+    
+    // Also search line by line for better matching
+    const lines = pageText.split('\n');
+    lines.forEach((line, index) => {
+      const trimmedLine = line.trim();
+      
+      // Check each pattern
+      taskPatterns.forEach(pattern => {
+        const match = pattern.exec(trimmedLine);
+        if (match && match[1] && match[1].trim().length > 0) {
+          const taskText = match[1].trim();
+          // Avoid duplicates
+          if (!tasks.some(task => task.text === taskText)) {
+            tasks.push({
+              id: 'task_' + Date.now() + '_' + index + '_' + Math.random().toString(36).substr(2, 5),
+              text: taskText,
+              completed: false,
+              source: 'page_extraction',
+              url: window.location.href,
+              extractedAt: new Date().toISOString()
+            });
+          }
+        }
+        pattern.lastIndex = 0; // Reset regex
+      });
+      
+      // Simple TODO detection without regex for testing
+      if (trimmedLine.toLowerCase().includes('todo:')) {
+        const todoIndex = trimmedLine.toLowerCase().indexOf('todo:');
+        const taskText = trimmedLine.substring(todoIndex + 5).trim();
+        if (taskText && !tasks.some(task => task.text === taskText)) {
+          tasks.push({
+            id: 'task_simple_' + Date.now() + '_' + index,
+            text: taskText,
+            completed: false,
+            source: 'simple_extraction',
+            url: window.location.href,
+            extractedAt: new Date().toISOString()
+          });
+        }
       }
     });
     
+    console.log('Extracted tasks:', tasks);
     return tasks;
   }
 
