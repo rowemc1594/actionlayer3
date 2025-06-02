@@ -75,14 +75,29 @@ class ActionLayer3Popup {
     console.log("[ActionLayer3] Refresh tasks clicked");
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const activeTab = tabs[0];
-      chrome.tabs.sendMessage(activeTab.id, { type: "getTasks" }, (response) => {
+      
+      // Try to get tasks from background script instead of content script
+      chrome.runtime.sendMessage({ type: "getTasks" }, (response) => {
         if (chrome.runtime.lastError) {
-          console.error("[ActionLayer3] Error messaging content script:", chrome.runtime.lastError);
-          this.renderTasks([]);
+          console.log("[ActionLayer3] No content script available, loading from storage");
+          // Fallback to getting tasks directly from storage
+          chrome.storage.local.get(['tasks'], (result) => {
+            const tasks = result.tasks || [];
+            this.renderTasks(tasks);
+          });
           return;
         }
-        console.log("[ActionLayer3] Tasks received:", response.tasks);
-        this.renderTasks(response.tasks);
+        
+        if (response && response.tasks) {
+          console.log("[ActionLayer3] Tasks received:", response.tasks);
+          this.renderTasks(response.tasks);
+        } else {
+          // Fallback to storage if no response
+          chrome.storage.local.get(['tasks'], (result) => {
+            const tasks = result.tasks || [];
+            this.renderTasks(tasks);
+          });
+        }
       });
     });
   }
