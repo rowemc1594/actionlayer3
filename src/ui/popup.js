@@ -102,20 +102,21 @@ class ActionLayer3Popup {
         }
         
         if (results && results[0] && results[0].result) {
-          const extractedTasks = results[0].result;
-          console.log("[ActionLayer3] Extracted tasks:", extractedTasks);
+          const extractionResult = results[0].result;
+          console.log("[ActionLayer3] Page extraction result:", extractionResult);
           
-          // Save extracted tasks and display them
-          if (extractedTasks.length > 0) {
+          if (extractionResult.tasks && extractionResult.tasks.length > 0) {
+            console.log("[ActionLayer3] Found tasks:", extractionResult.tasks);
             chrome.storage.local.get(['tasks'], (result) => {
               const existingTasks = result.tasks || [];
-              const allTasks = [...existingTasks, ...extractedTasks];
+              const allTasks = [...existingTasks, ...extractionResult.tasks];
               chrome.storage.local.set({ tasks: allTasks }, () => {
                 this.renderTasks(allTasks);
               });
             });
           } else {
-            // No tasks found, show stored tasks
+            console.log("[ActionLayer3] No tasks found. Page text was:", extractionResult.pageText);
+            // Show stored tasks
             chrome.storage.local.get(['tasks'], (result) => {
               const tasks = result.tasks || [];
               this.renderTasks(tasks);
@@ -132,7 +133,6 @@ class ActionLayer3Popup {
     
     // Get all text from the page
     const pageText = document.body.innerText;
-    console.log('Page text for extraction:', pageText);
     
     // More flexible task patterns
     const taskPatterns = [
@@ -185,8 +185,12 @@ class ActionLayer3Popup {
       }
     });
     
-    console.log('Extracted tasks:', tasks);
-    return tasks;
+    // Return both tasks and page text for debugging
+    return {
+      tasks: tasks,
+      pageText: pageText,
+      totalLines: lines.length
+    };
   }
 
   renderTasks(tasks) {
