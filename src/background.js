@@ -234,7 +234,8 @@ class ActionLayer3Background {
       // Send notification if enabled
       const settings = await this.getSettings();
       if (settings.notifications && tasks.length > 0) {
-        this.showNotification(`Found ${tasks.length} task(s) on ${pageInfo.domain}`);
+        const domain = pageInfo?.domain || 'this page';
+        this.showNotification(`Found ${tasks.length} task(s) on ${domain}`);
       }
 
       console.log(`[ActionLayer3] Extracted ${tasks.length} tasks from ${pageInfo.url}`);
@@ -447,8 +448,20 @@ class ActionLayer3Background {
    */
   showNotification(message) {
     try {
-      // Ensure message is a string
-      const messageText = typeof message === 'string' ? message : String(message || 'Notification');
+      // Validate and clean the message
+      let messageText = 'Notification';
+      if (message !== null && message !== undefined) {
+        if (typeof message === 'string') {
+          messageText = message;
+        } else {
+          messageText = String(message);
+        }
+      }
+      
+      // Ensure message is not empty
+      if (!messageText.trim()) {
+        messageText = 'ActionLayer3 notification';
+      }
       
       chrome.notifications.create({
         type: 'basic',
@@ -457,7 +470,7 @@ class ActionLayer3Background {
         message: messageText
       }, (notificationId) => {
         if (chrome.runtime.lastError) {
-          console.error('[ActionLayer3] Failed to show notification:', chrome.runtime.lastError);
+          console.error('[ActionLayer3] Notification error:', chrome.runtime.lastError.message);
         }
       });
     } catch (error) {
