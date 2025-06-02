@@ -41,6 +41,12 @@ class ActionLayer3Popup {
       this.testExtractButton.addEventListener("click", () => this.onTestExtract());
     }
 
+    // 4. Clear All Tasks button
+    this.clearTasksButton = document.getElementById("clear-tasks");
+    if (this.clearTasksButton) {
+      this.clearTasksButton.addEventListener("click", () => this.onClearTasks());
+    }
+
     // 3. Tab headers
     this.tasksTabBtn = document.querySelector('[data-tab="tasks"]');
     this.memoryTabBtn = document.querySelector('[data-tab="memory"]');
@@ -257,6 +263,16 @@ class ActionLayer3Popup {
         this.renderTasks(allTasks);
         console.log("[ActionLayer3] Test tasks added:", testTasks);
       });
+    });
+  }
+
+  onClearTasks() {
+    console.log("[ActionLayer3] Cleared all tasks");
+    
+    // Clear all tasks from storage
+    chrome.storage.local.set({ tasks: [] }, () => {
+      // Immediately re-render the empty task list
+      this.renderTasks([]);
     });
   }
 

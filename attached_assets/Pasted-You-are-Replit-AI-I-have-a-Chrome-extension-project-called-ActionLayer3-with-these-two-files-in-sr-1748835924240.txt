@@ -1,0 +1,77 @@
+You are Replit AI. I have a Chrome extension project called ActionLayer3 with these two files in `src/ui/`:
+
+1. **popup.html** (already contains a “Refresh Tasks” button, a “Save Memory” button, and a `<ul id="task-list">`).
+2. **popup.js** (already handles Refresh→fetch tasks from content script and renders them into `#task-list`).
+
+Please update both files to add a new button labeled “Clear All Tasks” that sits next to or below the “Refresh Tasks” button. When clicked, it should:
+
+• Invoke `chrome.storage.local.set({ tasks: [] })` (i.e. wipe the stored array of tasks)  
+• Immediately re-render the task list so that `#task-list` only shows a single `<li class="empty-state">No tasks found.</li>`  
+• Log to the console: `[ActionLayer3] Cleared all tasks`  
+
+Do not alter any other functionality. Generate only the two updated files (`popup.html` and `popup.js`) in their entirety, preserving all existing IDs and CSS. Here are the existing file contents for reference:
+
+---
+
+**Current `src/ui/popup.html`:**
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ActionLayer3</title>
+  <style>
+    /* existing inline CSS… */
+    body { font-family: Arial, sans-serif; margin: 0; padding: 8px; width: 300px; }
+    h1 { display: flex; justify-content: space-between; }
+    h1 span.version { font-size: 12px; color: gray; }
+    .button-row { display: flex; gap: 4px; margin-bottom: 12px; }
+    button { padding: 4px 8px; font-size: 12px; cursor: pointer; }
+    .popup-nav { display: flex; gap: 4px; margin-bottom: 8px; }
+    .nav-tab { flex: 1; text-align: center; padding: 6px; cursor: pointer; border-bottom: 2px solid transparent; }
+    .nav-tab.active { border-bottom-color: #007acc; font-weight: bold; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    ul { list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; }
+    li { padding: 6px; border-bottom: 1px solid #eee; cursor: pointer; }
+    .empty-state { padding: 8px; color: gray; font-size: 13px; text-align: center; }
+    input[type="text"] { width: 100%; box-sizing: border-box; padding: 6px; font-size: 13px; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <h1>
+    ActionLayer3
+    <span class="version">v1.0.0</span>
+  </h1>
+
+  <!-- Buttons: Refresh and Save -->
+  <div class="button-row">
+    <button id="refresh-tasks">Refresh Tasks</button>
+    <button id="save-memory">Save Memory</button>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="popup-nav">
+    <div class="nav-tab active" data-tab="tasks">Tasks</div>
+    <div class="nav-tab" data-tab="memory">Memory</div>
+  </div>
+
+  <!-- Tasks Tab Content -->
+  <div id="tasksTab" class="tab-content active">
+    <ul id="task-list">
+      <li class="empty-state">No tasks found.</li>
+    </ul>
+  </div>
+
+  <!-- Memory Tab Content -->
+  <div id="memoryTab" class="tab-content">
+    <input type="text" id="memory-input" placeholder="Enter memory note…" />
+    <ul id="memory-list">
+      <li class="empty-state">No memories saved.</li>
+    </ul>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
