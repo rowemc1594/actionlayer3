@@ -76,11 +76,14 @@ class ActionLayer3Popup {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const activeTab = tabs[0];
       
-      // Try to get tasks from background script instead of content script
-      chrome.runtime.sendMessage({ type: "getTasks" }, (response) => {
+      // First try to extract tasks from the current page
+      chrome.scripting.executeScript({
+        target: { tabId: activeTab.id },
+        func: this.extractTasksFromPage
+      }, (results) => {
         if (chrome.runtime.lastError) {
-          console.log("[ActionLayer3] No content script available, loading from storage");
-          // Fallback to getting tasks directly from storage
+          console.log("[ActionLayer3] Could not extract from page, loading stored tasks");
+          // Fallback to stored tasks
           chrome.storage.local.get(['tasks'], (result) => {
             const tasks = result.tasks || [];
             this.renderTasks(tasks);
@@ -88,18 +91,59 @@ class ActionLayer3Popup {
           return;
         }
         
-        if (response && response.tasks) {
-          console.log("[ActionLayer3] Tasks received:", response.tasks);
-          this.renderTasks(response.tasks);
-        } else {
-          // Fallback to storage if no response
-          chrome.storage.local.get(['tasks'], (result) => {
-            const tasks = result.tasks || [];
-            this.renderTasks(tasks);
-          });
+        if (results && results[0] && results[0].result) {
+          const extractedTasks = results[0].result;
+          console.log("[ActionLayer3] Extracted tasks:", extractedTasks);
+          
+          // Save extracted tasks and display them
+          if (extractedTasks.length > 0) {
+            chrome.storage.local.get(['tasks'], (result) => {
+              const existingTasks = result.tasks || [];
+              const allTasks = [...existingTasks, ...extractedTasks];
+              chrome.storage.local.set({ tasks: allTasks }, () => {
+                this.renderTasks(allTasks);
+              });
+            });
+          } else {
+            // No tasks found, show stored tasks
+            chrome.storage.local.get(['tasks'], (result) => {
+              const tasks = result.tasks || [];
+              this.renderTasks(tasks);
+            });
+          }
         }
       });
     });
+  }
+
+  // Function to extract tasks from the current page
+  extractTasksFromPage() {
+    const tasks = [];
+    const taskPatterns = [
+      /TODO:\s*(.+)/gi,
+      /\[ \]\s*(.+)/gi,
+      /- \[ \]\s*(.+)/gi
+    ];
+    
+    // Get all text from the page
+    const pageText = document.body.innerText;
+    
+    // Extract tasks using patterns
+    taskPatterns.forEach(pattern => {
+      let match;
+      while ((match = pattern.exec(pageText)) !== null) {
+        tasks.push({
+          id: 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+          text: match[1].trim(),
+          completed: false,
+          source: 'page_extraction',
+          url: window.location.href,
+          extractedAt: new Date().toISOString()
+        });
+      }
+    });
+    
+    return tasks;
   }
 
   renderTasks(tasks) {
