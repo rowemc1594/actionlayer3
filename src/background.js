@@ -447,11 +447,14 @@ class ActionLayer3Background {
    */
   showNotification(message) {
     try {
+      // Ensure message is a string
+      const messageText = typeof message === 'string' ? message : String(message || 'Notification');
+      
       chrome.notifications.create({
         type: 'basic',
         iconUrl: 'icons/icon48.png',
         title: 'ActionLayer3',
-        message: message
+        message: messageText
       }, (notificationId) => {
         if (chrome.runtime.lastError) {
           console.error('[ActionLayer3] Failed to show notification:', chrome.runtime.lastError);
