@@ -231,12 +231,12 @@ class ActionLayer3Background {
         tasks: limitedTasks
       });
 
-      // Send notification if enabled
-      const settings = await this.getSettings();
-      if (settings.notifications && tasks.length > 0) {
-        const domain = pageInfo?.domain || 'this page';
-        this.showNotification(`Found ${tasks.length} task(s) on ${domain}`);
-      }
+      // Send notification if enabled (temporarily disabled to prevent errors)
+      // const settings = await this.getSettings();
+      // if (settings.notifications && tasks.length > 0) {
+      //   const domain = pageInfo?.domain || 'this page';
+      //   this.showNotification(`Found ${tasks.length} task(s) on ${domain}`);
+      // }
 
       console.log(`[ActionLayer3] Extracted ${tasks.length} tasks from ${pageInfo.url}`);
     } catch (error) {
