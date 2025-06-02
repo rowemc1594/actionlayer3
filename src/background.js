@@ -231,12 +231,12 @@ class ActionLayer3Background {
         tasks: limitedTasks
       });
 
-      // Send notification if enabled (temporarily disabled to prevent errors)
-      // const settings = await this.getSettings();
-      // if (settings.notifications && tasks.length > 0) {
-      //   const domain = pageInfo?.domain || 'this page';
-      //   this.showNotification(`Found ${tasks.length} task(s) on ${domain}`);
-      // }
+      // Send notification if enabled
+      const settings = await this.getSettings();
+      if (settings.notifications && tasks.length > 0) {
+        const domain = pageInfo?.domain || 'this page';
+        this.showNotification(`Found ${tasks.length} task(s) on ${domain}`);
+      }
 
       console.log(`[ActionLayer3] Extracted ${tasks.length} tasks from ${pageInfo.url}`);
     } catch (error) {
@@ -444,37 +444,11 @@ class ActionLayer3Background {
   }
 
   /**
-   * Show notification
+   * Show notification (disabled to prevent errors)
    */
   showNotification(message) {
-    try {
-      // Validate and clean the message
-      let messageText = 'Notification';
-      if (message !== null && message !== undefined) {
-        if (typeof message === 'string') {
-          messageText = message;
-        } else {
-          messageText = String(message);
-        }
-      }
-      
-      // Ensure message is not empty
-      if (!messageText.trim()) {
-        messageText = 'ActionLayer3 notification';
-      }
-      
-      chrome.notifications.create({
-        type: 'basic',
-        title: 'ActionLayer3',
-        message: messageText
-      }, (notificationId) => {
-        if (chrome.runtime.lastError) {
-          console.error('[ActionLayer3] Notification error:', chrome.runtime.lastError.message);
-        }
-      });
-    } catch (error) {
-      console.error('[ActionLayer3] Failed to show notification:', error);
-    }
+    // Notifications temporarily disabled to prevent Chrome extension errors
+    console.log('[ActionLayer3] Notification (disabled):', message);
   }
 }
 
