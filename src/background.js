@@ -70,16 +70,32 @@ class ActionLayer3Background {
    */
   setupContextMenus() {
     try {
-      chrome.contextMenus.create({
-        id: 'actionlayer3-extract-tasks',
-        title: 'Extract tasks from this page',
-        contexts: ['page']
-      });
+      // Remove existing menus first
+      chrome.contextMenus.removeAll(() => {
+        if (chrome.runtime.lastError) {
+          console.log('[ActionLayer3] No existing context menus to remove');
+        }
+        
+        // Create new context menus
+        chrome.contextMenus.create({
+          id: 'actionlayer3-extract-tasks',
+          title: 'Extract tasks from this page',
+          contexts: ['page']
+        }, () => {
+          if (chrome.runtime.lastError) {
+            console.error('[ActionLayer3] Context menu creation failed:', chrome.runtime.lastError);
+          }
+        });
 
-      chrome.contextMenus.create({
-        id: 'actionlayer3-add-task',
-        title: 'Add selected text as task',
-        contexts: ['selection']
+        chrome.contextMenus.create({
+          id: 'actionlayer3-add-task',
+          title: 'Add selected text as task',
+          contexts: ['selection']
+        }, () => {
+          if (chrome.runtime.lastError) {
+            console.error('[ActionLayer3] Context menu creation failed:', chrome.runtime.lastError);
+          }
+        });
       });
 
       chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -194,16 +210,25 @@ class ActionLayer3Background {
       // Store tasks for this tab
       this.tabTasks.set(tab.id, { tasks, pageInfo, extractedAt: Date.now() });
 
-      // Store tasks persistently
+      // Limit storage to prevent quota issues
       const existingTasks = await this.getTasks();
-      const newTasks = tasks.map(task => ({
-        ...task,
-        tabId: tab.id,
-        pageInfo
+      const maxTasks = 100; // Limit total tasks
+      
+      const newTasks = tasks.slice(0, 10).map(task => ({ // Limit new tasks per page
+        id: task.id,
+        text: task.text.substring(0, 200), // Limit text length
+        completed: task.completed,
+        url: pageInfo.url,
+        domain: pageInfo.domain,
+        extractedAt: new Date().toISOString()
       }));
 
+      // Keep only recent tasks
+      const allTasks = [...existingTasks, ...newTasks];
+      const limitedTasks = allTasks.slice(-maxTasks);
+
       await chrome.storage.local.set({
-        tasks: [...existingTasks, ...newTasks]
+        tasks: limitedTasks
       });
 
       // Send notification if enabled
@@ -424,9 +449,13 @@ class ActionLayer3Background {
     try {
       chrome.notifications.create({
         type: 'basic',
-        iconUrl: 'icons/icon48.svg',
+        iconUrl: 'icons/icon48.png',
         title: 'ActionLayer3',
         message: message
+      }, (notificationId) => {
+        if (chrome.runtime.lastError) {
+          console.error('[ActionLayer3] Failed to show notification:', chrome.runtime.lastError);
+        }
       });
     } catch (error) {
       console.error('[ActionLayer3] Failed to show notification:', error);
