@@ -166,7 +166,7 @@ class ActionLayer3Popup {
   async onSaveMemory() {
     const text = this.memoryInput.value.trim();
     if (!text) {
-      console.warn("[ActionLayer3] No memory text entered.");
+      console.log("[ActionLayer3] No memory text to save.");
       return;
     }
     console.log("[ActionLayer3] Save memory clicked:", text);
