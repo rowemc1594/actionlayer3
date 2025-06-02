@@ -35,6 +35,12 @@ class ActionLayer3Popup {
     if (!this.saveMemoryButton) throw new Error("Missing #save-memory button");
     this.saveMemoryButton.addEventListener("click", () => this.onSaveMemory());
 
+    // 3. Test Extract button
+    this.testExtractButton = document.getElementById("test-extract");
+    if (this.testExtractButton) {
+      this.testExtractButton.addEventListener("click", () => this.onTestExtract());
+    }
+
     // 3. Tab headers
     this.tasksTabBtn = document.querySelector('[data-tab="tasks"]');
     this.memoryTabBtn = document.querySelector('[data-tab="memory"]');
@@ -83,45 +89,32 @@ class ActionLayer3Popup {
 
   onRefreshTasks() {
     console.log("[ActionLayer3] Refresh tasks clicked");
+    
+    // Just load and display stored tasks for now
+    chrome.storage.local.get(['tasks'], (result) => {
+      const tasks = result.tasks || [];
+      console.log("[ActionLayer3] Loaded tasks from storage:", tasks);
+      this.renderTasks(tasks);
+    });
+    
+    // Also try to send a message to content script if available
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const activeTab = tabs[0];
-      
-      // First try to extract tasks from the current page
-      chrome.scripting.executeScript({
-        target: { tabId: activeTab.id },
-        func: this.extractTasksFromPage
-      }, (results) => {
-        if (chrome.runtime.lastError) {
-          console.log("[ActionLayer3] Could not extract from page, loading stored tasks");
-          // Fallback to stored tasks
+      chrome.tabs.sendMessage(activeTab.id, { type: "extractTasks" }, (response) => {
+        if (!chrome.runtime.lastError && response && response.tasks) {
+          console.log("[ActionLayer3] Content script found tasks:", response.tasks);
           chrome.storage.local.get(['tasks'], (result) => {
-            const tasks = result.tasks || [];
-            this.renderTasks(tasks);
-          });
-          return;
-        }
-        
-        if (results && results[0] && results[0].result) {
-          const extractionResult = results[0].result;
-          console.log("[ActionLayer3] Page extraction result:", extractionResult);
-          
-          if (extractionResult.tasks && extractionResult.tasks.length > 0) {
-            console.log("[ActionLayer3] Found tasks:", extractionResult.tasks);
-            chrome.storage.local.get(['tasks'], (result) => {
-              const existingTasks = result.tasks || [];
-              const allTasks = [...existingTasks, ...extractionResult.tasks];
+            const existingTasks = result.tasks || [];
+            const newTasks = response.tasks.filter(newTask => 
+              !existingTasks.some(existing => existing.text === newTask.text)
+            );
+            if (newTasks.length > 0) {
+              const allTasks = [...existingTasks, ...newTasks];
               chrome.storage.local.set({ tasks: allTasks }, () => {
                 this.renderTasks(allTasks);
               });
-            });
-          } else {
-            console.log("[ActionLayer3] No tasks found. Page text was:", extractionResult.pageText);
-            // Show stored tasks
-            chrome.storage.local.get(['tasks'], (result) => {
-              const tasks = result.tasks || [];
-              this.renderTasks(tasks);
-            });
-          }
+            }
+          });
         }
       });
     });
@@ -230,6 +223,39 @@ class ActionLayer3Popup {
         console.log("[ActionLayer3] Memory saved:", newMem);
         this.memoryInput.value = "";
         this.renderMemories(current);
+      });
+    });
+  }
+
+  onTestExtract() {
+    console.log("[ActionLayer3] Test extract clicked");
+    
+    // Add some test tasks to verify the system works
+    const testTasks = [
+      {
+        id: 'test_' + Date.now() + '_1',
+        text: 'Buy groceries',
+        completed: false,
+        source: 'test_extraction',
+        url: 'test://page',
+        extractedAt: new Date().toISOString()
+      },
+      {
+        id: 'test_' + Date.now() + '_2',
+        text: 'Write report',
+        completed: false,
+        source: 'test_extraction',
+        url: 'test://page',
+        extractedAt: new Date().toISOString()
+      }
+    ];
+    
+    chrome.storage.local.get(['tasks'], (result) => {
+      const currentTasks = result.tasks || [];
+      const allTasks = [...currentTasks, ...testTasks];
+      chrome.storage.local.set({ tasks: allTasks }, () => {
+        this.renderTasks(allTasks);
+        console.log("[ActionLayer3] Test tasks added:", testTasks);
       });
     });
   }
