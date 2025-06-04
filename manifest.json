@@ -18,14 +18,7 @@
   "background": {
     "service_worker": "src/background.js"
   },
-  "content_scripts": [
-    {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["src/direct-sidebar.js"],
-      "run_at": "document_end",
-      "all_frames": false
-    }
-  ],
+
   "action": {
     "default_title": "ActionLayer3",
     "default_icon": {

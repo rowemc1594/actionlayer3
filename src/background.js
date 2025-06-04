@@ -293,13 +293,29 @@ class ActionLayer3Background {
     try {
       console.log('[ActionLayer3] Extension icon clicked for tab:', tab.url);
       
-      // Try to inject the sidebar directly
+      // First inject the sidebar script
       await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         files: ['src/direct-sidebar.js']
       });
       
-      console.log('[ActionLayer3] Sidebar script injected via action click');
+      // Then call the function to create the sidebar
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          if (typeof createDirectSidebar === 'function') {
+            createDirectSidebar();
+            // Auto-extract tasks after sidebar is created
+            setTimeout(() => {
+              if (typeof extractAndDisplayTasks === 'function') {
+                extractAndDisplayTasks();
+              }
+            }, 500);
+          }
+        }
+      });
+      
+      console.log('[ActionLayer3] Sidebar created via action click');
     } catch (error) {
       console.error('[ActionLayer3] Failed to inject sidebar:', error);
     }

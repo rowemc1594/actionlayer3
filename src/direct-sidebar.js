@@ -6,7 +6,11 @@ function createDirectSidebar() {
   const existingSidebar = document.getElementById('actionlayer3-direct-sidebar');
   if (existingSidebar) {
     console.log('[ActionLayer3] Direct sidebar already exists, toggling visibility');
-    existingSidebar.style.display = existingSidebar.style.display === 'none' ? 'block' : 'none';
+    const isVisible = existingSidebar.style.display !== 'none';
+    existingSidebar.style.display = isVisible ? 'none' : 'block';
+    
+    // Save state to localStorage
+    localStorage.setItem('actionlayer3-sidebar-visible', !isVisible);
     return;
   }
 
@@ -71,7 +75,8 @@ function setupSidebarEvents(sidebar) {
   const closeBtn = sidebar.querySelector('#actionlayer3-close');
   closeBtn.addEventListener('click', () => {
     console.log('[ActionLayer3] Closing direct sidebar');
-    sidebar.remove();
+    sidebar.style.display = 'none';
+    localStorage.setItem('actionlayer3-sidebar-visible', 'false');
   });
   
   // Add task button
@@ -289,13 +294,5 @@ window.toggleTask = function(taskId) {
   });
 };
 
-// Inject when ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    createDirectSidebar();
-    setTimeout(extractAndDisplayTasks, 1000);
-  });
-} else {
-  createDirectSidebar();
-  setTimeout(extractAndDisplayTasks, 1000);
-}
+// Only create sidebar when explicitly called (via extension icon)
+// The background script will inject this file and call createDirectSidebar() manually
