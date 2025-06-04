@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test Popup</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 8px; width: 300px; }
+    .button-row { display: flex; gap: 4px; margin-bottom: 12px; }
+    button { padding: 4px 8px; font-size: 12px; cursor: pointer; background: lightblue; }
+  </style>
+</head>
+<body>
+  <h1>Test ActionLayer3</h1>
+  
+  <div class="button-row">
+    <button id="refresh-tasks">Refresh Tasks</button>
+    <button id="save-memory">Save Memory</button>
+    <button id="test-extract">Test Extract</button>
+    <button id="clear-tasks">Clear All Tasks</button>
+  </div>
+
+  <script>
+    console.log("Clear button element:", document.getElementById("clear-tasks"));
+    document.getElementById("clear-tasks").addEventListener("click", () => {
+      alert("Clear button works!");
+    });
+  </script>
+</body>
+</html>
