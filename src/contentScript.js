@@ -58,6 +58,11 @@ class ActionLayer3ContentScript {
           case 'extractTasks':
             console.log('[ActionLayer3] Content script extracting tasks...');
             console.log('[ActionLayer3] Current URL:', window.location.href);
+            
+            // Simple test: just find all h1, h2, li elements regardless of filtering
+            const testElements = document.querySelectorAll('h1, h2, h3, li');
+            console.log('[ActionLayer3] Test found', testElements.length, 'heading/list elements');
+            
             const tasks = this.extractTasks();
             console.log('[ActionLayer3] Content script found', tasks.length, 'tasks:', tasks);
             sendResponse({ tasks: tasks });
@@ -246,15 +251,14 @@ class ActionLayer3ContentScript {
       return false;
     }
     
-    // Define task patterns first
+    // Define task patterns first - simplified for better detection
     const taskPatterns = [
       /^[-*•]\s+/,  // Bullet points
       /^\d+\.\s+/,  // Numbered lists
       /^☐|^□|^✓|^✔|^✕/,  // Checkbox symbols
       /\b(define|identify|choose|select|build|create|develop|implement|design|plan|consider|determine|decide)\b/i,
-      /\b(buy|get|call|email|send|write|read|finish|complete|do|make|update|fix|review|check|install|setup|configure)\b/i,
-      /\b(task|todo|assignment|action|item|step|goal|objective)\b/i,
-      /\b(need to|have to|must|should|remember to|begin by|start by)\b/i,
+      /\b(functionality|target|audience|integration|approach|platforms)\b/i,  // Content-specific words
+      /\b(guide|step|process|method|way|approach)\b/i,
       /:\s*$/  // Text ending with colon (like headings that suggest action items)
     ];
     
@@ -274,11 +278,6 @@ class ActionLayer3ContentScript {
     // Filter out very short generic words that aren't tasks
     const genericWords = ['open', 'close', 'click', 'more', 'less', 'menu', 'search', 'home', 'back', 'next', 'prev'];
     if (genericWords.includes(text.toLowerCase())) {
-      return false;
-    }
-    
-    // Require minimum meaningful content
-    if (text.split(' ').length < 2 && !taskPatterns.some(pattern => pattern.test(text))) {
       return false;
     }
     
