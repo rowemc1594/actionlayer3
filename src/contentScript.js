@@ -57,8 +57,9 @@ class ActionLayer3ContentScript {
         switch (request.action) {
           case 'extractTasks':
             console.log('[ActionLayer3] Content script extracting tasks...');
+            console.log('[ActionLayer3] Current URL:', window.location.href);
             const tasks = this.extractTasks();
-            console.log('[ActionLayer3] Content script found tasks:', tasks);
+            console.log('[ActionLayer3] Content script found', tasks.length, 'tasks:', tasks);
             sendResponse({ tasks: tasks });
             break;
           case 'highlightTask':
@@ -122,16 +123,24 @@ class ActionLayer3ContentScript {
    */
   extractTasks() {
     try {
+      console.log('[ActionLayer3] Starting task extraction...');
       const tasks = [];
       const taskElements = this.findTaskElements();
+      console.log('[ActionLayer3] Found', taskElements.length, 'potential task elements');
       
       taskElements.forEach((element, index) => {
+        console.log('[ActionLayer3] Processing element:', element.tagName, element.textContent?.substring(0, 50));
         const task = this.parseTaskElement(element, index);
         if (task) {
+          console.log('[ActionLayer3] Created task:', task.text);
           tasks.push(task);
           this.taskElements.set(task.id, element);
+        } else {
+          console.log('[ActionLayer3] Element rejected during parsing');
         }
       });
+
+      console.log('[ActionLayer3] Final task count:', tasks.length);
 
       // Notify background script of extracted tasks
       chrome.runtime.sendMessage({
