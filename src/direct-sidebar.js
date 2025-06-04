@@ -144,7 +144,134 @@ function loadTasks() {
 
 function refreshTasks() {
   console.log('[ActionLayer3] Refreshing tasks...');
-  loadTasks();
+  extractAndDisplayTasks();
+}
+
+function extractAndDisplayTasks() {
+  // Extract tasks from current page
+  const extractedTasks = extractTasksFromPage();
+  
+  // Load existing tasks and merge with extracted ones
+  chrome.storage.local.get(['tasks'], (result) => {
+    const existingTasks = result.tasks || [];
+    const currentUrl = window.location.href;
+    
+    // Remove old extracted tasks from this URL
+    const filteredTasks = existingTasks.filter(task => 
+      task.source === 'manual' || task.url !== currentUrl
+    );
+    
+    // Add new extracted tasks
+    const allTasks = [...filteredTasks, ...extractedTasks];
+    
+    chrome.storage.local.set({ tasks: allTasks }, () => {
+      loadTasks();
+      console.log(`[ActionLayer3] Extracted ${extractedTasks.length} tasks from page`);
+    });
+  });
+}
+
+function extractTasksFromPage() {
+  const tasks = [];
+  const currentUrl = window.location.href;
+  
+  // Task extraction patterns
+  const taskPatterns = [
+    // Action verbs at start of sentences
+    /^(Create|Build|Make|Develop|Design|Write|Configure|Setup|Install|Deploy|Test|Fix|Update|Add|Remove|Delete|Modify|Implement|Optimize|Review|Plan|Research|Analyze|Document|Learn|Practice|Study|Complete|Finish|Start|Begin|Initialize|Launch|Execute|Run|Debug|Troubleshoot|Validate|Verify|Check|Ensure|Confirm|Submit|Send|Upload|Download|Export|Import|Save|Load|Backup|Restore|Migrate|Upgrade|Patch|Maintain|Monitor|Track|Measure|Evaluate|Assess|Audit|Inspect|Investigate|Explore|Discover|Find|Search|Locate|Identify|Define|Specify|Determine|Decide|Choose|Select|Pick|Collect|Gather|Organize|Sort|Arrange|Structure|Format|Convert|Transform|Process|Generate|Produce|Craft|Prepare|Setup|Enable|Disable|Activate|Deactivate|Turn on|Turn off|Switch|Toggle|Adjust|Customize|Personalize|Tailor|Adapt|Modify|Change|Alter|Edit|Revise|Refactor|Rewrite|Restructure|Redesign|Rebuild|Recreate|Reproduce|Duplicate|Copy|Clone|Fork|Branch|Merge|Sync|Synchronize|Integrate|Connect|Link|Associate|Attach|Bind|Join|Combine|Unite|Unify|Consolidate|Centralize|Coordinate|Collaborate|Communicate|Discuss|Meet|Schedule|Arrange|Book|Reserve|Allocate|Assign|Delegate|Distribute|Share|Publish|Release|Announce|Notify|Alert|Remind|Follow up|Contact|Reach out|Call|Email|Message|Chat|Reply|Respond|Answer|Address|Handle|Manage|Oversee|Supervise|Lead|Guide|Direct|Instruct|Teach|Train|Educate|Inform|Explain|Clarify|Demonstrate|Show|Present|Display|Exhibit|Showcase|Highlight|Emphasize|Focus|Prioritize|Rank|Rate|Score|Grade|Evaluate|Judge|Approve|Reject|Accept|Decline|Confirm|Cancel|Postpone|Reschedule|Delay|Wait|Pause|Stop|Continue|Resume|Restart|Refresh|Reload|Reset|Clear|Clean|Purge|Delete|Remove|Eliminate|Exclude|Filter|Sort|Search|Find|Locate|Navigate|Browse|Explore|Visit|Go to|Access|Enter|Exit|Leave|Return|Come back|Stay|Remain|Keep|Maintain|Preserve|Protect|Secure|Lock|Unlock|Encrypt|Decrypt|Compress|Decompress|Zip|Unzip|Archive|Extract|Expand|Collapse|Minimize|Maximize|Resize|Scale|Zoom|Pan|Scroll|Slide|Drag|Drop|Click|Tap|Press|Push|Pull|Grab|Hold|Release|Let go)\\s+[^.!?]*[.!?]/gi,
+    // Checkbox or list items
+    /^\s*[-*•]\s+(.+)$/gm,
+    // Numbered lists
+    /^\s*\d+\.\s+(.+)$/gm,
+    // Todo patterns
+    /(?:TODO|To do|ToDo|TASK|Task|ACTION|Action):\s*(.+)/gi
+  ];
+  
+  // Extract text content
+  const textContent = document.body.innerText;
+  
+  // Find tasks using patterns
+  taskPatterns.forEach((pattern, patternIndex) => {
+    const matches = textContent.match(pattern);
+    if (matches) {
+      matches.forEach((match, matchIndex) => {
+        let taskText = match.trim();
+        
+        // Clean up the task text
+        taskText = taskText.replace(/^[-*•]\s*/, ''); // Remove list markers
+        taskText = taskText.replace(/^\d+\.\s*/, ''); // Remove numbers
+        taskText = taskText.replace(/^(TODO|To do|ToDo|TASK|Task|ACTION|Action):\s*/i, ''); // Remove labels
+        taskText = taskText.replace(/[.!?]+$/, ''); // Remove trailing punctuation
+        
+        // Filter out very short or very long tasks
+        if (taskText.length > 10 && taskText.length < 200) {
+          tasks.push({
+            id: `extracted_${patternIndex}_${matchIndex}_${Date.now()}`,
+            text: taskText,
+            completed: false,
+            source: 'extracted',
+            url: currentUrl,
+            extractedAt: new Date().toISOString(),
+            confidence: calculateConfidence(taskText)
+          });
+        }
+      });
+    }
+  });
+  
+  // Look for structured task elements
+  const taskElements = document.querySelectorAll('li, .task, .todo, [class*="task"], [class*="todo"], [class*="action"]');
+  taskElements.forEach((element, index) => {
+    const text = element.textContent.trim();
+    if (text.length > 10 && text.length < 200 && isLikelyTask(text)) {
+      tasks.push({
+        id: `element_${index}_${Date.now()}`,
+        text: text,
+        completed: element.classList.contains('completed') || element.classList.contains('done'),
+        source: 'extracted',
+        url: currentUrl,
+        extractedAt: new Date().toISOString(),
+        confidence: calculateConfidence(text)
+      });
+    }
+  });
+  
+  // Remove duplicates and sort by confidence
+  const uniqueTasks = tasks.filter((task, index, self) => 
+    index === self.findIndex(t => t.text.toLowerCase() === task.text.toLowerCase())
+  );
+  
+  return uniqueTasks.sort((a, b) => b.confidence - a.confidence).slice(0, 20); // Limit to top 20 tasks
+}
+
+function calculateConfidence(text) {
+  let confidence = 0.5; // Base confidence
+  
+  // Increase confidence for action words
+  const actionWords = /\b(create|build|make|develop|design|write|configure|setup|install|deploy|test|fix|update|add|remove|implement|complete|finish|start|begin|check|verify|ensure|review|analyze|optimize)\b/gi;
+  if (actionWords.test(text)) confidence += 0.3;
+  
+  // Increase confidence for imperative mood
+  if (/^[A-Z][a-z]+\s+/.test(text)) confidence += 0.2;
+  
+  // Decrease confidence for questions
+  if (text.includes('?')) confidence -= 0.2;
+  
+  // Decrease confidence for very generic text
+  if (/^(the|this|that|a|an)\s/i.test(text)) confidence -= 0.1;
+  
+  return Math.min(Math.max(confidence, 0), 1);
+}
+
+function isLikelyTask(text) {
+  // Check if text looks like a task
+  const actionPatterns = [
+    /^(create|build|make|develop|design|write|configure|setup|install|deploy|test|fix|update|add|remove|implement|complete|finish|start|begin|check|verify|ensure|review|analyze|optimize)/i,
+    /\b(need to|should|must|have to|required|necessary)\b/i,
+    /\b(task|todo|action|step|instruction)\b/i
+  ];
+  
+  return actionPatterns.some(pattern => pattern.test(text));
 }
 
 // Global function for toggle button
@@ -164,7 +291,11 @@ window.toggleTask = function(taskId) {
 
 // Inject when ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', createDirectSidebar);
+  document.addEventListener('DOMContentLoaded', () => {
+    createDirectSidebar();
+    setTimeout(extractAndDisplayTasks, 1000);
+  });
 } else {
   createDirectSidebar();
+  setTimeout(extractAndDisplayTasks, 1000);
 }
