@@ -111,16 +111,31 @@ class ActionLayer3Popup {
           console.log("[ActionLayer3] Content script found tasks:", response.tasks);
           chrome.storage.local.get(['tasks'], (result) => {
             const existingTasks = result.tasks || [];
+            
+            // Improve duplicate detection - check both text and URL
             const newTasks = response.tasks.filter(newTask => 
-              !existingTasks.some(existing => existing.text === newTask.text)
+              !existingTasks.some(existing => 
+                existing.text === newTask.text && existing.url === newTask.url
+              )
             );
+            
+            console.log("[ActionLayer3] New tasks after filtering:", newTasks);
+            console.log("[ActionLayer3] Existing tasks count:", existingTasks.length);
+            
             if (newTasks.length > 0) {
               const allTasks = [...existingTasks, ...newTasks];
               chrome.storage.local.set({ tasks: allTasks }, () => {
+                console.log("[ActionLayer3] Added", newTasks.length, "new tasks");
                 this.renderTasks(allTasks);
               });
+            } else {
+              console.log("[ActionLayer3] No new tasks found (all were duplicates or none detected)");
+              // Still render existing tasks to show current state
+              this.renderTasks(existingTasks);
             }
           });
+        } else {
+          console.log("[ActionLayer3] No response from content script or error:", chrome.runtime.lastError);
         }
       });
     });
