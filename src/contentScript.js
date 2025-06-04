@@ -298,7 +298,6 @@ class ActionLayer3ContentScript {
                        element.getAttribute('role') === 'checkbox';
     
     // Check for task-related classes or attributes
-    const elementClasses = element.className.toLowerCase();
     const hasTaskClass = ['task', 'todo', 'item', 'action', 'checkbox'].some(cls => 
       elementClasses.includes(cls)
     );
