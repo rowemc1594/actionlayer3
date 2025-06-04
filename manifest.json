@@ -18,7 +18,13 @@
   "background": {
     "service_worker": "src/background.js"
   },
-
+  "content_scripts": [
+    {
+      "matches": ["*://chat.openai.com/*"],
+      "js": ["src/contentScript.js"],
+      "run_at": "document_end"
+    }
+  ],
   "action": {
     "default_title": "ActionLayer3",
     "default_icon": {

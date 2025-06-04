@@ -1,0 +1,27 @@
+ActionLayer 3 is designed primarily as an interactive companion for ChatGPT (and similar chatbots) that lives alongside the chat interface, rather than as a generic browser‐wide task catcher. Its core purpose is to:
+
+1. **Remain Visible During Chat Sessions**
+   • Instead of popping up just when clicked, it stays docked alongside the ChatGPT window (or any chat UI) so you never lose sight of it as you converse.
+   • This ensures tasks, insights, or idea branches captured during a conversation aren’t hidden or forgotten when you scroll or switch focus.
+
+2. **Capture Tasks & Insights in Context**
+   • As you chat, any “action items” or important takeaways can be sent directly into ActionLayer 3 without breaking flow. You can highlight text or use context‐menu commands to tag tasks right out of the conversation.
+   • Those tasks are timestamped and linked to the exact chat prompt or reply that generated them, so you can trace back to the originating context.
+
+3. \*\* Preserve Idea Branches & Memory Anchors\*\*
+   • When an insightful suggestion or new thread emerges in the chat, you can save it as a “memory” or “idea branch” with a single click or command.
+   • Those anchors stay listed in the sidebar, letting you revisit past discussion points as you continue the chat, rather than losing them off‐screen or buried in scrollback.
+
+4. **Seamless Two‐Way Communication**
+   • ActionLayer 3 listens for ChatGPT conversation events (e.g. new messages or user selections) and can both push captured items into its own storage and pull stored tasks/memories back into the chat when prompted (e.g. “Show me my TODOs so far”).
+   • This tight coupling means you don’t have to switch to a separate tool or window to keep track of follow‐ups or insights—you stay within the chat environment.
+
+5. **Minimal, Chat‐Focused UI**
+   • The sidebar is intentionally lightweight—just enough to list current tasks, saved memories, and quick buttons for “Refresh,” “Clear,” or “Save” without cluttering the chat.
+   • It’s built to feel like a natural extension of the ChatGPT interface, not a separate productivity app you have to learn.
+
+6. **Future Conversational Extensions**
+   • You’ll eventually be able to issue natural language commands like “Remind me to revisit that idea tomorrow at 10 am,” and ActionLayer 3 will schedule or highlight it in context.
+   • Because it stays open alongside the chat, it can prompt you when new related discussion appears or thread branches evolve—so you never lose track of a tangential idea you wanted to explore later.
+
+In short, **ActionLayer 3’s intent is to bridge the gap between ChatGPT conversations and actionable follow‐ups**—keeping your tasks, insights, and branching ideas anchored right next to the chatbot so nothing slips through as you scroll or switch topics.

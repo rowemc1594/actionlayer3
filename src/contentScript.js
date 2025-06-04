@@ -48,7 +48,12 @@ class ActionLayer3ContentScript {
       this.setupMessageListener();
       this.setupDOMObserver();
       this.extractInitialTasks();
-      this.injectSidebar();
+      
+      // Auto-dock sidebar only on ChatGPT pages
+      if (location.hostname.includes("chat.openai.com")) {
+        this.injectSidebar();
+      }
+      
       this.setupPostMessageListener();
       
       console.log('[ActionLayer3] Content script setup complete');
