@@ -4,7 +4,9 @@
  */
 
 // Test if content script loads
-console.log('[ActionLayer3] Content script file loaded');
+console.log('[ActionLayer3] Content script file loaded - sidebar version');
+console.log('[ActionLayer3] URL:', window.location.href);
+console.log('[ActionLayer3] Document ready state:', document.readyState);
 
 class ActionLayer3ContentScript {
   constructor() {
@@ -446,33 +448,61 @@ class ActionLayer3ContentScript {
    * Inject sidebar iframe into the page
    */
   injectSidebar() {
-    if (this.sidebarIframe) return; // Already injected
+    if (this.sidebarIframe) {
+      console.log('[ActionLayer3] Sidebar already exists, skipping injection');
+      return;
+    }
 
-    console.log('[ActionLayer3] Injecting sidebar iframe...');
-
-    // Create iframe element
-    this.sidebarIframe = document.createElement('iframe');
-    this.sidebarIframe.id = 'actionlayer3-sidebar';
-    this.sidebarIframe.src = chrome.runtime.getURL('src/ui/panel.html');
+    console.log('[ActionLayer3] Starting sidebar injection...');
+    console.log('[ActionLayer3] Document body exists:', !!document.body);
     
-    // Style the iframe
-    this.sidebarIframe.style.cssText = `
-      position: fixed !important;
-      top: 0 !important;
-      right: 0 !important;
-      width: 300px !important;
-      height: 100vh !important;
-      border: none !important;
-      z-index: 10000 !important;
-      background: white !important;
-      box-shadow: -2px 0 10px rgba(0,0,0,0.1) !important;
-    `;
+    if (!document.body) {
+      console.log('[ActionLayer3] Document body not ready, waiting...');
+      setTimeout(() => this.injectSidebar(), 100);
+      return;
+    }
 
-    // Inject into page
-    document.body.appendChild(this.sidebarIframe);
-    this.sidebarVisible = true;
+    try {
+      // Create iframe element
+      this.sidebarIframe = document.createElement('iframe');
+      this.sidebarIframe.id = 'actionlayer3-sidebar';
+      
+      const panelURL = chrome.runtime.getURL('src/ui/panel.html');
+      console.log('[ActionLayer3] Panel URL:', panelURL);
+      this.sidebarIframe.src = panelURL;
+      
+      // Style the iframe
+      this.sidebarIframe.style.cssText = `
+        position: fixed !important;
+        top: 0 !important;
+        right: 0 !important;
+        width: 300px !important;
+        height: 100vh !important;
+        border: none !important;
+        z-index: 10000 !important;
+        background: white !important;
+        box-shadow: -2px 0 10px rgba(0,0,0,0.1) !important;
+      `;
 
-    console.log('[ActionLayer3] Sidebar iframe injected');
+      // Inject into page
+      document.body.appendChild(this.sidebarIframe);
+      this.sidebarVisible = true;
+
+      console.log('[ActionLayer3] Sidebar iframe injected successfully');
+      console.log('[ActionLayer3] Iframe element:', this.sidebarIframe);
+      
+      // Test if iframe loaded
+      this.sidebarIframe.onload = () => {
+        console.log('[ActionLayer3] Sidebar iframe loaded successfully');
+      };
+      
+      this.sidebarIframe.onerror = (error) => {
+        console.error('[ActionLayer3] Sidebar iframe failed to load:', error);
+      };
+      
+    } catch (error) {
+      console.error('[ActionLayer3] Error injecting sidebar:', error);
+    }
   }
 
   /**
