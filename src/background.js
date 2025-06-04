@@ -293,6 +293,13 @@ class ActionLayer3Background {
     try {
       console.log('[ActionLayer3] Extension icon clicked for tab:', tab.url);
       
+      // Check if this is a restricted URL
+      if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || 
+          tab.url.startsWith('moz-extension://') || tab.url.startsWith('edge://')) {
+        console.log('[ActionLayer3] Cannot inject on restricted URL:', tab.url);
+        return;
+      }
+      
       // First inject the sidebar script
       await chrome.scripting.executeScript({
         target: { tabId: tab.id },
