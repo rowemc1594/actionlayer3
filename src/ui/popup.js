@@ -105,14 +105,14 @@ class ActionLayer3Popup {
         console.log("[ActionLayer3] Injecting content script...");
         await chrome.scripting.executeScript({
           target: { tabId: activeTab.id },
-          files: ['test-content.js']
+          files: ['simple-extractor.js']
         });
         console.log("[ActionLayer3] Content script injected successfully");
         
         // Wait a moment for initialization
         setTimeout(() => {
-          // Now try to send test message
-          chrome.tabs.sendMessage(activeTab.id, { action: "test" }, (response) => {
+          // Now try to extract tasks
+          chrome.tabs.sendMessage(activeTab.id, { action: "extractTasks" }, (response) => {
             if (!chrome.runtime.lastError && response && response.tasks) {
           console.log("[ActionLayer3] Content script found tasks:", response.tasks);
           chrome.storage.local.get(['tasks'], (result) => {
