@@ -42,9 +42,27 @@ class ActionLayer3Popup {
     }
 
     // 4. Clear All Tasks button
-    this.clearTasksButton = document.getElementById("clear-tasks");
+    this.clearTasksButton = document.getElementById("clear-all-tasks");
     if (this.clearTasksButton) {
       this.clearTasksButton.addEventListener("click", () => this.onClearTasks());
+    }
+
+    // 5. Close Sidebar button
+    this.closeSidebarButton = document.getElementById("close-sidebar");
+    if (this.closeSidebarButton) {
+      this.closeSidebarButton.addEventListener("click", () => this.onCloseSidebar());
+    }
+
+    // 6. Add Task button and input
+    this.addTaskButton = document.getElementById("add-task");
+    this.taskInput = document.getElementById("task-input");
+    if (this.addTaskButton && this.taskInput) {
+      this.addTaskButton.addEventListener("click", () => this.onAddTask());
+      this.taskInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          this.onAddTask();
+        }
+      });
     }
 
     // 3. Tab headers
@@ -355,6 +373,15 @@ class ActionLayer3Popup {
       li.addEventListener("click", () => chrome.tabs.create({ url: mem.pageUrl }));
       this.memoryList.appendChild(li);
     });
+  }
+
+  onCloseSidebar() {
+    console.log("[ActionLayer3] Close sidebar clicked");
+    
+    // Send message to parent window (content script) to close sidebar
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ action: 'closeSidebar' }, '*');
+    }
   }
 }
 

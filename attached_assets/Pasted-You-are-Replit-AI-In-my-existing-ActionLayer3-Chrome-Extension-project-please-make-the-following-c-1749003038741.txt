@@ -1,0 +1,74 @@
+You are Replit AI. In my existing ActionLayer3 Chrome Extension project, please make the following changes so that the UI becomes a persistent right‐hand sidebar on every page (instead of a click-to-open popup). Generate only the updated files in full (don’t output any extra explanation). The files to update or add are:
+
+1. **src/ui/panel.html** (new file, based on popup.html but styled as a fixed 300px-wide sidebar that stays open).
+2. **src/ui/popup.js** (this file will now run inside panel.html and must wire up Refresh, Save Memory, Clear All, and tab switching exactly as before).
+3. **src/contentScript.js** (modify to inject an `<iframe>` for panel.html on every page load and to listen for “closeSidebar” messages).
+4. **manifest.json** (remove the “default_popup” entry, ensure content_scripts remains, and confirm permissions).
+
+Below are the original files for reference. Your job is to replace them or create new ones exactly as specified:
+
+---
+
+### Original `src/ui/popup.html` (for reference)
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ActionLayer3</title>
+  <style>
+    /* existing inline CSS… */
+    body { font-family: Arial, sans-serif; margin: 0; padding: 8px; width: 300px; }
+    h1 { display: flex; justify-content: space-between; }
+    h1 span.version { font-size: 12px; color: gray; }
+    .button-row { display: flex; gap: 4px; margin-bottom: 12px; }
+    button { padding: 4px 8px; font-size: 12px; cursor: pointer; }
+    .popup-nav { display: flex; gap: 4px; margin-bottom: 8px; }
+    .nav-tab { flex: 1; text-align: center; padding: 6px; cursor: pointer; border-bottom: 2px solid transparent; }
+    .nav-tab.active { border-bottom-color: #007acc; font-weight: bold; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    ul { list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; }
+    li { padding: 6px; border-bottom: 1px solid #eee; cursor: pointer; }
+    .empty-state { padding: 8px; color: gray; font-size: 13px; text-align: center; }
+    input[type="text"] { width: 100%; box-sizing: border-box; padding: 6px; font-size: 13px; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <h1>
+    ActionLayer3
+    <span class="version">v1.0.0</span>
+  </h1>
+
+  <!-- Buttons: Refresh and Save -->
+  <div class="button-row">
+    <button id="refresh-tasks">Refresh Tasks</button>
+    <button id="save-memory">Save Memory</button>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="popup-nav">
+    <div class="nav-tab active" data-tab="tasks">Tasks</div>
+    <div class="nav-tab" data-tab="memory">Memory</div>
+  </div>
+
+  <!-- Tasks Tab Content -->
+  <div id="tasksTab" class="tab-content active">
+    <ul id="task-list">
+      <li class="empty-state">No tasks found.</li>
+    </ul>
+  </div>
+
+  <!-- Memory Tab Content -->
+  <div id="memoryTab" class="tab-content">
+    <input type="text" id="memory-input" placeholder="Enter memory note…" />
+    <ul id="memory-list">
+      <li class="empty-state">No memories saved.</li>
+    </ul>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

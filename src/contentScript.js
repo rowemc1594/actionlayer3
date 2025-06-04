@@ -11,6 +11,8 @@ class ActionLayer3ContentScript {
     this.isInitialized = false;
     this.taskElements = new Map();
     this.observers = [];
+    this.sidebarIframe = null;
+    this.sidebarVisible = false;
     this.init();
   }
 
