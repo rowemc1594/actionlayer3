@@ -58,6 +58,11 @@ class ActionLayer3Background {
       this.tabTasks.delete(tabId);
     });
 
+    // Action button click
+    chrome.action.onClicked.addListener((tab) => {
+      this.handleActionClick(tab);
+    });
+
     // Extension startup
     chrome.runtime.onStartup.addListener(() => {
       console.log('[ActionLayer3] Extension startup');
@@ -279,6 +284,25 @@ class ActionLayer3Background {
   handleStartup() {
     // Clean up old tab data
     this.tabTasks.clear();
+  }
+
+  /**
+   * Handle extension icon click
+   */
+  async handleActionClick(tab) {
+    try {
+      console.log('[ActionLayer3] Extension icon clicked for tab:', tab.url);
+      
+      // Try to inject the sidebar directly
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['src/direct-sidebar.js']
+      });
+      
+      console.log('[ActionLayer3] Sidebar script injected via action click');
+    } catch (error) {
+      console.error('[ActionLayer3] Failed to inject sidebar:', error);
+    }
   }
 
   /**

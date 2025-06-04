@@ -3,8 +3,10 @@ console.log('[ActionLayer3] Direct sidebar script loaded');
 
 function createDirectSidebar() {
   // Check if sidebar already exists
-  if (document.getElementById('actionlayer3-direct-sidebar')) {
-    console.log('[ActionLayer3] Direct sidebar already exists');
+  const existingSidebar = document.getElementById('actionlayer3-direct-sidebar');
+  if (existingSidebar) {
+    console.log('[ActionLayer3] Direct sidebar already exists, toggling visibility');
+    existingSidebar.style.display = existingSidebar.style.display === 'none' ? 'block' : 'none';
     return;
   }
 
