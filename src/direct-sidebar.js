@@ -16,46 +16,71 @@ function createDirectSidebar() {
 
   console.log('[ActionLayer3] Creating direct sidebar...');
 
+  // Inject CSS if not already present
+  if (!document.getElementById('actionlayer3-styles')) {
+    const style = document.createElement('style');
+    style.id = 'actionlayer3-styles';
+    style.textContent = `
+      #actionlayer3-direct-sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        right: 0 !important;
+        width: 300px !important;
+        height: 100vh !important;
+        background: white !important;
+        border-left: 1px solid #ddd !important;
+        box-shadow: -2px 0 10px rgba(0,0,0,0.1) !important;
+        z-index: 10000 !important;
+        padding: 10px !important;
+        overflow-y: auto !important;
+        font-family: Arial, sans-serif !important;
+        font-size: 14px !important;
+      }
+      .actionlayer3-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+      .actionlayer3-title { margin: 0; font-size: 18px; color: #333; }
+      .actionlayer3-close { background: #ff4444; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
+      .actionlayer3-buttons { margin-bottom: 15px; }
+      .actionlayer3-btn { border: none; padding: 8px 12px; border-radius: 3px; cursor: pointer; margin-right: 5px; }
+      .actionlayer3-btn-primary { background: #007acc; color: white; }
+      .actionlayer3-btn-success { background: #28a745; color: white; }
+      .actionlayer3-btn-info { background: #17a2b8; color: white; width: 100%; }
+      .actionlayer3-input-group { margin-bottom: 15px; }
+      .actionlayer3-input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px; box-sizing: border-box; margin-bottom: 5px; }
+      .actionlayer3-task-list { border: 1px solid #ddd; border-radius: 3px; max-height: 200px; overflow-y: auto; }
+      .actionlayer3-task-item { padding: 8px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+      .actionlayer3-task-text { flex: 1; }
+      .actionlayer3-task-completed { text-decoration: line-through; color: #666; }
+      .actionlayer3-toggle-btn { color: white; border: none; padding: 2px 6px; border-radius: 2px; cursor: pointer; font-size: 12px; }
+      .actionlayer3-toggle-completed { background: #28a745; }
+      .actionlayer3-toggle-pending { background: #6c757d; }
+      .actionlayer3-empty-state { padding: 10px; color: #666; text-align: center; }
+    `;
+    document.head.appendChild(style);
+  }
+
   // Create sidebar container
   const sidebar = document.createElement('div');
   sidebar.id = 'actionlayer3-direct-sidebar';
   
-  // Style the sidebar
-  sidebar.style.cssText = `
-    position: fixed !important;
-    top: 0 !important;
-    right: 0 !important;
-    width: 300px !important;
-    height: 100vh !important;
-    background: white !important;
-    border-left: 1px solid #ddd !important;
-    box-shadow: -2px 0 10px rgba(0,0,0,0.1) !important;
-    z-index: 10000 !important;
-    padding: 10px !important;
-    overflow-y: auto !important;
-    font-family: Arial, sans-serif !important;
-    font-size: 14px !important;
-  `;
-  
-  // Add content directly
+  // Add content with CSS classes
   sidebar.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-      <h2 style="margin: 0; font-size: 18px; color: #333;">ActionLayer3</h2>
-      <button id="actionlayer3-close" style="background: #ff4444; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">×</button>
+    <div class="actionlayer3-header">
+      <h2 class="actionlayer3-title">ActionLayer3</h2>
+      <button id="actionlayer3-close" class="actionlayer3-close">×</button>
     </div>
     
-    <div style="margin-bottom: 15px;">
-      <button id="actionlayer3-refresh" style="background: #007acc; color: white; border: none; padding: 8px 12px; border-radius: 3px; cursor: pointer; margin-right: 5px;">Refresh Tasks</button>
-      <button id="actionlayer3-save" style="background: #28a745; color: white; border: none; padding: 8px 12px; border-radius: 3px; cursor: pointer;">Save Memory</button>
+    <div class="actionlayer3-buttons">
+      <button id="actionlayer3-refresh" class="actionlayer3-btn actionlayer3-btn-primary">Refresh Tasks</button>
+      <button id="actionlayer3-save" class="actionlayer3-btn actionlayer3-btn-success">Save Memory</button>
     </div>
     
-    <div style="margin-bottom: 15px;">
-      <input type="text" id="actionlayer3-task-input" placeholder="Add a task..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px; box-sizing: border-box; margin-bottom: 5px;">
-      <button id="actionlayer3-add-task" style="width: 100%; background: #17a2b8; color: white; border: none; padding: 8px; border-radius: 3px; cursor: pointer;">Add Task</button>
+    <div class="actionlayer3-input-group">
+      <input type="text" id="actionlayer3-task-input" placeholder="Add a task..." class="actionlayer3-input">
+      <button id="actionlayer3-add-task" class="actionlayer3-btn actionlayer3-btn-info">Add Task</button>
     </div>
     
-    <div id="actionlayer3-task-list" style="border: 1px solid #ddd; border-radius: 3px; max-height: 200px; overflow-y: auto;">
-      <div style="padding: 10px; color: #666; text-align: center;">Loading tasks...</div>
+    <div id="actionlayer3-task-list" class="actionlayer3-task-list">
+      <div class="actionlayer3-empty-state">Loading tasks...</div>
     </div>
   `;
   
@@ -130,14 +155,14 @@ function loadTasks() {
     const taskList = document.querySelector('#actionlayer3-task-list');
     
     if (tasks.length === 0) {
-      taskList.innerHTML = '<div style="padding: 10px; color: #666; text-align: center;">No tasks found</div>';
+      taskList.innerHTML = '<div class="actionlayer3-empty-state">No tasks found</div>';
       return;
     }
     
     const taskHTML = tasks.map(task => `
-      <div style="padding: 8px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
-        <span style="flex: 1; ${task.completed ? 'text-decoration: line-through; color: #666;' : ''}">${task.text}</span>
-        <button data-task-id="${task.id}" class="task-toggle-btn" style="background: ${task.completed ? '#28a745' : '#6c757d'}; color: white; border: none; padding: 2px 6px; border-radius: 2px; cursor: pointer; font-size: 12px;">
+      <div class="actionlayer3-task-item">
+        <span class="actionlayer3-task-text ${task.completed ? 'actionlayer3-task-completed' : ''}">${task.text}</span>
+        <button data-task-id="${task.id}" class="actionlayer3-toggle-btn ${task.completed ? 'actionlayer3-toggle-completed' : 'actionlayer3-toggle-pending'}">
           ${task.completed ? '✓' : '○'}
         </button>
       </div>
@@ -146,7 +171,7 @@ function loadTasks() {
     taskList.innerHTML = taskHTML;
     
     // Add event listeners to toggle buttons
-    taskList.querySelectorAll('.task-toggle-btn').forEach(btn => {
+    taskList.querySelectorAll('.actionlayer3-toggle-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const taskId = e.target.getAttribute('data-task-id');
         toggleTask(taskId);
