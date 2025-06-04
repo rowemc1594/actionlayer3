@@ -450,5 +450,11 @@ class ActionLayer3ContentScript {
 
 // Initialize content script
 if (typeof window !== 'undefined') {
-  window.actionLayer3Content = new ActionLayer3ContentScript();
+  // Prevent multiple initializations
+  if (!window.actionLayer3Content) {
+    console.log('[ActionLayer3] Initializing content script instance...');
+    window.actionLayer3Content = new ActionLayer3ContentScript();
+  } else {
+    console.log('[ActionLayer3] Content script already initialized');
+  }
 }
