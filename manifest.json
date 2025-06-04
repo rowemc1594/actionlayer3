@@ -26,7 +26,6 @@
     }
   ],
   "action": {
-    "default_popup": "src/ui/popup.html",
     "default_title": "ActionLayer3",
     "default_icon": {
       "16": "icons/icon16.png",
@@ -41,7 +40,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["tasks/*", "memory/*", "utils/*"],
+      "resources": ["src/ui/panel.html", "src/ui/popup.js", "tasks/*", "memory/*", "utils/*"],
       "matches": ["<all_urls>"]
     }
   ]

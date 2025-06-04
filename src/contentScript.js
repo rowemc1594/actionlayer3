@@ -46,6 +46,8 @@ class ActionLayer3ContentScript {
       this.setupMessageListener();
       this.setupDOMObserver();
       this.extractInitialTasks();
+      this.injectSidebar();
+      this.setupPostMessageListener();
       
       console.log('[ActionLayer3] Content script setup complete');
     } catch (error) {
@@ -441,12 +443,69 @@ class ActionLayer3ContentScript {
   }
 
   /**
+   * Inject sidebar iframe into the page
+   */
+  injectSidebar() {
+    if (this.sidebarIframe) return; // Already injected
+
+    console.log('[ActionLayer3] Injecting sidebar iframe...');
+
+    // Create iframe element
+    this.sidebarIframe = document.createElement('iframe');
+    this.sidebarIframe.id = 'actionlayer3-sidebar';
+    this.sidebarIframe.src = chrome.runtime.getURL('src/ui/panel.html');
+    
+    // Style the iframe
+    this.sidebarIframe.style.cssText = `
+      position: fixed !important;
+      top: 0 !important;
+      right: 0 !important;
+      width: 300px !important;
+      height: 100vh !important;
+      border: none !important;
+      z-index: 10000 !important;
+      background: white !important;
+      box-shadow: -2px 0 10px rgba(0,0,0,0.1) !important;
+    `;
+
+    // Inject into page
+    document.body.appendChild(this.sidebarIframe);
+    this.sidebarVisible = true;
+
+    console.log('[ActionLayer3] Sidebar iframe injected');
+  }
+
+  /**
+   * Setup post message listener for iframe communication
+   */
+  setupPostMessageListener() {
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.action === 'closeSidebar') {
+        this.closeSidebar();
+      }
+    });
+  }
+
+  /**
+   * Close the sidebar
+   */
+  closeSidebar() {
+    if (this.sidebarIframe) {
+      console.log('[ActionLayer3] Closing sidebar');
+      this.sidebarIframe.remove();
+      this.sidebarIframe = null;
+      this.sidebarVisible = false;
+    }
+  }
+
+  /**
    * Cleanup observers and listeners
    */
   cleanup() {
     this.observers.forEach(observer => observer.disconnect());
     this.observers = [];
     this.taskElements.clear();
+    this.closeSidebar();
   }
 }
 
