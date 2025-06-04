@@ -137,13 +137,21 @@ function loadTasks() {
     const taskHTML = tasks.map(task => `
       <div style="padding: 8px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
         <span style="flex: 1; ${task.completed ? 'text-decoration: line-through; color: #666;' : ''}">${task.text}</span>
-        <button onclick="toggleTask('${task.id}')" style="background: ${task.completed ? '#28a745' : '#6c757d'}; color: white; border: none; padding: 2px 6px; border-radius: 2px; cursor: pointer; font-size: 12px;">
+        <button data-task-id="${task.id}" class="task-toggle-btn" style="background: ${task.completed ? '#28a745' : '#6c757d'}; color: white; border: none; padding: 2px 6px; border-radius: 2px; cursor: pointer; font-size: 12px;">
           ${task.completed ? '✓' : '○'}
         </button>
       </div>
     `).join('');
     
     taskList.innerHTML = taskHTML;
+    
+    // Add event listeners to toggle buttons
+    taskList.querySelectorAll('.task-toggle-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const taskId = e.target.getAttribute('data-task-id');
+        toggleTask(taskId);
+      });
+    });
   });
 }
 
@@ -279,8 +287,7 @@ function isLikelyTask(text) {
   return actionPatterns.some(pattern => pattern.test(text));
 }
 
-// Global function for toggle button
-window.toggleTask = function(taskId) {
+function toggleTask(taskId) {
   chrome.storage.local.get(['tasks'], (result) => {
     const tasks = result.tasks || [];
     const task = tasks.find(t => t.id === taskId);
@@ -292,7 +299,7 @@ window.toggleTask = function(taskId) {
       });
     }
   });
-};
+}
 
 // Only create sidebar when explicitly called (via extension icon)
 // The background script will inject this file and call createDirectSidebar() manually
