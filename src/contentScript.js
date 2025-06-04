@@ -3,6 +3,9 @@
  * Handles web page interaction and task extraction
  */
 
+// Test if content script loads
+console.log('[ActionLayer3] Content script file loaded');
+
 class ActionLayer3ContentScript {
   constructor() {
     this.isInitialized = false;

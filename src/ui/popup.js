@@ -96,18 +96,24 @@ class ActionLayer3Popup {
   onRefreshTasks() {
     console.log("[ActionLayer3] Refresh tasks clicked");
     
-    // Just load and display stored tasks for now
-    chrome.storage.local.get(['tasks'], (result) => {
-      const tasks = result.tasks || [];
-      console.log("[ActionLayer3] Loaded tasks from storage:", tasks);
-      this.renderTasks(tasks);
-    });
-    
-    // Also try to send a message to content script if available
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    // First try to inject content script, then extract tasks
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       const activeTab = tabs[0];
-      chrome.tabs.sendMessage(activeTab.id, { action: "extractTasks" }, (response) => {
-        if (!chrome.runtime.lastError && response && response.tasks) {
+      
+      try {
+        // Try to inject content script programmatically
+        console.log("[ActionLayer3] Injecting content script...");
+        await chrome.scripting.executeScript({
+          target: { tabId: activeTab.id },
+          files: ['src/contentScript.js']
+        });
+        console.log("[ActionLayer3] Content script injected successfully");
+        
+        // Wait a moment for initialization
+        setTimeout(() => {
+          // Now try to extract tasks
+          chrome.tabs.sendMessage(activeTab.id, { action: "extractTasks" }, (response) => {
+            if (!chrome.runtime.lastError && response && response.tasks) {
           console.log("[ActionLayer3] Content script found tasks:", response.tasks);
           chrome.storage.local.get(['tasks'], (result) => {
             const existingTasks = result.tasks || [];
@@ -136,8 +142,24 @@ class ActionLayer3Popup {
           });
         } else {
           console.log("[ActionLayer3] No response from content script or error:", chrome.runtime.lastError);
+          // Load existing tasks from storage as fallback
+          chrome.storage.local.get(['tasks'], (result) => {
+            const tasks = result.tasks || [];
+            console.log("[ActionLayer3] Loaded tasks from storage (fallback):", tasks);
+            this.renderTasks(tasks);
+          });
         }
       });
+    }, 500);
+      } catch (injectionError) {
+        console.error("[ActionLayer3] Failed to inject content script:", injectionError);
+        // Fallback to loading existing tasks
+        chrome.storage.local.get(['tasks'], (result) => {
+          const tasks = result.tasks || [];
+          console.log("[ActionLayer3] Loaded tasks from storage (injection failed):", tasks);
+          this.renderTasks(tasks);
+        });
+      }
     });
   }
 
