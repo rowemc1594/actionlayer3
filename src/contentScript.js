@@ -169,32 +169,48 @@ class ActionLayer3ContentScript {
   findTaskElements(root = document) {
     const elements = [];
     
-    // First, look for structured task elements
+    // Focus on main content areas first
+    const mainContentSelectors = [
+      'main', 
+      '[role="main"]', 
+      '.content', 
+      '.main-content', 
+      'article',
+      '.post-content',
+      '.entry-content'
+    ];
+    
+    let contentArea = null;
+    for (const selector of mainContentSelectors) {
+      contentArea = root.querySelector(selector);
+      if (contentArea) break;
+    }
+    
+    // If no main content area found, use the body but exclude common UI areas
+    if (!contentArea) {
+      contentArea = root.body || root;
+    }
+    
+    // Look for structured task elements in content area
     const structuredSelectors = [
-      '[data-testid*="task"]',
-      '[class*="task"]',
-      '[class*="todo"]',
-      '[class*="item"]',
       'li',
       '[role="listitem"]',
-      '.checkbox',
-      'input[type="checkbox"]',
-      '[data-task]',
-      '[data-todo]'
+      'h1, h2, h3, h4, h5, h6',
+      'p',
+      '.step',
+      '.task',
+      '.todo',
+      '.item'
     ];
 
     structuredSelectors.forEach(selector => {
       try {
-        const found = root.querySelectorAll(selector);
+        const found = contentArea.querySelectorAll(selector);
         elements.push(...Array.from(found));
       } catch (error) {
         // Ignore invalid selectors
       }
     });
-    
-    // Also scan all text content for task patterns
-    const textElements = root.querySelectorAll('p, div, span, h1, h2, h3, h4, h5, h6, td, th');
-    elements.push(...Array.from(textElements));
 
     return elements.filter(el => this.isTaskElement(el));
   }
@@ -208,19 +224,54 @@ class ActionLayer3ContentScript {
     const text = element.textContent?.trim() || '';
     if (text.length < 3 || text.length > 200) return false;
     
-    // Skip navigation, header, and footer elements
-    const excludedTags = ['nav', 'header', 'footer', 'script', 'style', 'meta'];
+    // Skip navigation, header, footer, and UI elements
+    const excludedTags = ['nav', 'header', 'footer', 'script', 'style', 'meta', 'aside', 'button'];
     if (excludedTags.includes(element.tagName.toLowerCase())) return false;
     
-    // Check for task-like patterns in text
+    // Skip elements with UI-related classes and IDs
+    const elementClasses = element.className.toLowerCase();
+    const elementId = element.id.toLowerCase();
+    const uiKeywords = ['sidebar', 'menu', 'nav', 'toolbar', 'header', 'footer', 'chatgpt', 'shareplus', 'button', 'dropdown', 'modal'];
+    
+    if (uiKeywords.some(keyword => elementClasses.includes(keyword) || elementId.includes(keyword))) {
+      return false;
+    }
+    
+    // Define task patterns first
     const taskPatterns = [
       /^[-*•]\s+/,  // Bullet points
       /^\d+\.\s+/,  // Numbered lists
       /^☐|^□|^✓|^✔|^✕/,  // Checkbox symbols
-      /\b(buy|get|call|email|send|write|read|finish|complete|do|make|create|update|fix|review|check)\b/i,
-      /\b(task|todo|assignment|action|item)\b/i,
-      /\b(need to|have to|must|should|remember to)\b/i
+      /\b(define|identify|choose|select|build|create|develop|implement|design|plan|consider|determine|decide)\b/i,
+      /\b(buy|get|call|email|send|write|read|finish|complete|do|make|update|fix|review|check|install|setup|configure)\b/i,
+      /\b(task|todo|assignment|action|item|step|goal|objective)\b/i,
+      /\b(need to|have to|must|should|remember to|begin by|start by)\b/i,
+      /:\s*$/  // Text ending with colon (like headings that suggest action items)
     ];
+    
+    // Skip elements that are likely UI components
+    if (element.closest('[class*="sidebar"]') || 
+        element.closest('[class*="menu"]') || 
+        element.closest('[class*="nav"]') ||
+        element.closest('[id*="sidebar"]') ||
+        element.closest('button') ||
+        element.closest('[role="button"]') ||
+        element.closest('[class*="toolbar"]') ||
+        element.closest('[class*="chrome"]') ||
+        element.closest('[class*="extension"]')) {
+      return false;
+    }
+    
+    // Filter out very short generic words that aren't tasks
+    const genericWords = ['open', 'close', 'click', 'more', 'less', 'menu', 'search', 'home', 'back', 'next', 'prev'];
+    if (genericWords.includes(text.toLowerCase())) {
+      return false;
+    }
+    
+    // Require minimum meaningful content
+    if (text.split(' ').length < 2 && !taskPatterns.some(pattern => pattern.test(text))) {
+      return false;
+    }
     
     const hasTaskPattern = taskPatterns.some(pattern => pattern.test(text));
     
@@ -243,8 +294,14 @@ class ActionLayer3ContentScript {
    */
   parseTaskElement(element, index) {
     try {
-      const text = element.textContent?.trim();
+      let text = this.extractCleanText(element);
       if (!text) return null;
+
+      // Clean up the text further
+      text = text.replace(/\s+/g, ' ').trim();
+      
+      // Skip if too short or too long
+      if (text.length < 5 || text.length > 150) return null;
 
       const checkbox = element.querySelector('input[type="checkbox"]');
       const isCompleted = checkbox ? checkbox.checked : 
@@ -260,12 +317,48 @@ class ActionLayer3ContentScript {
         url: window.location.href,
         domain: window.location.hostname,
         extractedAt: new Date().toISOString(),
-        selector: this.generateSelector(element)
+        selector: this.generateSelector(element),
+        source: 'auto_extraction'
       };
     } catch (error) {
       console.error('[ActionLayer3] Failed to parse task element:', error);
       return null;
     }
+  }
+
+  /**
+   * Extract clean text from element, focusing on direct content
+   */
+  extractCleanText(element) {
+    // For headings, use the heading text directly
+    if (/^h[1-6]$/i.test(element.tagName)) {
+      return element.textContent?.trim();
+    }
+
+    // For list items, try to get just the main text
+    if (element.tagName.toLowerCase() === 'li') {
+      // Clone the element to manipulate it
+      const clone = element.cloneNode(true);
+      
+      // Remove nested lists to avoid concatenated text
+      const nestedLists = clone.querySelectorAll('ul, ol');
+      nestedLists.forEach(list => list.remove());
+      
+      return clone.textContent?.trim();
+    }
+
+    // For paragraphs, get the text but limit length
+    if (element.tagName.toLowerCase() === 'p') {
+      const text = element.textContent?.trim();
+      // If paragraph is too long, it's probably not a task
+      if (text && text.length > 100) {
+        return null;
+      }
+      return text;
+    }
+
+    // For other elements, use direct text content
+    return element.textContent?.trim();
   }
 
   /**
