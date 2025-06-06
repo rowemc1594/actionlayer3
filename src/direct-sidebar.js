@@ -42,6 +42,7 @@ function createDirectSidebar() {
       .actionlayer3-buttons { margin-bottom: 15px; }
       .actionlayer3-btn { border: none; padding: 8px 12px; border-radius: 3px; cursor: pointer; margin-right: 5px; }
       .actionlayer3-btn-primary { background: #007acc; color: white; }
+      .actionlayer3-btn-danger { background: #dc3545; color: white; }
       .actionlayer3-btn-success { background: #28a745; color: white; }
       .actionlayer3-btn-info { background: #17a2b8; color: white; width: 100%; }
       .actionlayer3-input-group { margin-bottom: 15px; }
@@ -71,6 +72,7 @@ function createDirectSidebar() {
     
     <div class="actionlayer3-buttons">
       <button id="actionlayer3-refresh" class="actionlayer3-btn actionlayer3-btn-primary">Refresh Tasks</button>
+      <button id="actionlayer3-clear" class="actionlayer3-btn actionlayer3-btn-danger">Clear All Tasks</button>
       <button id="actionlayer3-save" class="actionlayer3-btn actionlayer3-btn-success">Save Memory</button>
     </div>
     
@@ -126,6 +128,12 @@ function setupSidebarEvents(sidebar) {
   const refreshBtn = sidebar.querySelector('#actionlayer3-refresh');
   refreshBtn.addEventListener('click', () => {
     refreshTasks();
+  });
+  
+  // Clear button
+  const clearBtn = sidebar.querySelector('#actionlayer3-clear');
+  clearBtn.addEventListener('click', () => {
+    clearAllTasks();
   });
 }
 
@@ -324,6 +332,15 @@ function toggleTask(taskId) {
       });
     }
   });
+}
+
+function clearAllTasks() {
+  if (confirm('Are you sure you want to clear all tasks? This action cannot be undone.')) {
+    chrome.storage.local.set({ tasks: [] }, () => {
+      loadTasks();
+      console.log('[ActionLayer3] All tasks cleared');
+    });
+  }
 }
 
 // Only create sidebar when explicitly called (via extension icon)
