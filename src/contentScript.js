@@ -250,7 +250,7 @@ class ActionLayer3ContentScript {
     if (!element || element.nodeType !== Node.ELEMENT_NODE) return false;
     
     const text = element.textContent?.trim() || '';
-    if (text.length < 3 || text.length > 200) return false;
+    if (text.length < 10 || text.length > 500) return false;
     
     // Skip navigation, header, footer, and UI elements
     const excludedTags = ['nav', 'header', 'footer', 'script', 'style', 'meta', 'aside', 'button'];
@@ -265,15 +265,16 @@ class ActionLayer3ContentScript {
       return false;
     }
     
-    // Define task patterns first - simplified for better detection
+    // Enhanced task patterns for better detection
     const taskPatterns = [
-      /^[-*•]\s+/,  // Bullet points
-      /^\d+\.\s+/,  // Numbered lists
+      /^\d+\.\s+\w+/,  // Numbered list items (like "1. Defining the Scope")
+      /^[-*•]\s+\w+/,  // Bullet points
       /^☐|^□|^✓|^✔|^✕/,  // Checkbox symbols
-      /\b(define|identify|choose|select|build|create|develop|implement|design|plan|consider|determine|decide)\b/i,
-      /\b(functionality|target|audience|integration|approach|platforms)\b/i,  // Content-specific words
-      /\b(guide|step|process|method|way|approach)\b/i,
-      /:\s*$/  // Text ending with colon (like headings that suggest action items)
+      /\b(defining|choosing|integrating|implementing|building|deploying|setting up|configuring)\b/i,  // Action verbs
+      /\b(step|phase|stage|process|procedure|method|approach|technique)\b/i,  // Process words
+      /\b(first|second|third|next|then|finally|lastly)\b.*\b(you|need|should|must|will)\b/i,  // Instructional patterns
+      /:\s*\w+.*\.(.*data.*sources|.*tools|.*integration|.*access.*controls|.*model|.*deployment)/i,  // Descriptive task patterns
+      /\b(ensure|make sure|verify|check|confirm|validate)\b/i  // Verification actions
     ];
     
     // Skip elements that are likely UI components
@@ -289,9 +290,9 @@ class ActionLayer3ContentScript {
       return false;
     }
     
-    // Filter out very short generic words that aren't tasks
-    const genericWords = ['open', 'close', 'click', 'more', 'less', 'menu', 'search', 'home', 'back', 'next', 'prev'];
-    if (genericWords.includes(text.toLowerCase())) {
+    // Filter out very generic text that's not actionable
+    const genericPhrases = ['read more', 'learn more', 'click here', 'see more', 'view all', 'home', 'menu', 'search', 'back', 'next', 'previous'];
+    if (genericPhrases.some(phrase => text.toLowerCase().includes(phrase))) {
       return false;
     }
     
@@ -303,11 +304,19 @@ class ActionLayer3ContentScript {
                        element.getAttribute('role') === 'checkbox';
     
     // Check for task-related classes or attributes
-    const hasTaskClass = ['task', 'todo', 'item', 'action', 'checkbox'].some(cls => 
+    const hasTaskClass = ['task', 'todo', 'item', 'action', 'checkbox', 'step'].some(cls => 
       elementClasses.includes(cls)
     );
     
-    return hasTaskPattern || hasCheckbox || hasTaskClass;
+    // Special handling for numbered list items in structured content
+    const isNumberedListItem = element.tagName.toLowerCase() === 'li' && /^\d+\./.test(text);
+    
+    // Check if it's a paragraph with actionable content
+    const isParagraphWithAction = element.tagName.toLowerCase() === 'p' && 
+      (/\b(you need|you should|you must|you will|involves|requires|includes)\b/i.test(text) ||
+       /\b(first|second|third|next|then|finally)\b/i.test(text));
+    
+    return hasTaskPattern || hasCheckbox || hasTaskClass || isNumberedListItem || isParagraphWithAction;
   }
 
   /**
@@ -322,7 +331,11 @@ class ActionLayer3ContentScript {
       text = text.replace(/\s+/g, ' ').trim();
       
       // Skip if too short or too long
-      if (text.length < 5 || text.length > 150) return null;
+      if (text.length < 10 || text.length > 300) return null;
+
+      // Skip very generic text that's not actionable
+      const genericTexts = ['read more', 'learn more', 'click here', 'see more', 'view all', 'home', 'menu', 'search'];
+      if (genericTexts.some(generic => text.toLowerCase().includes(generic))) return null;
 
       const checkbox = element.querySelector('input[type="checkbox"]');
       const isCompleted = checkbox ? checkbox.checked : 
@@ -331,7 +344,7 @@ class ActionLayer3ContentScript {
                          text.includes('✓') || text.includes('✔');
 
       return {
-        id: `task_${Date.now()}_${index}`,
+        id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`,
         text: text,
         completed: isCompleted,
         element: element.tagName.toLowerCase(),
@@ -680,6 +693,13 @@ class ActionLayer3ContentScript {
   extractAndDisplayTasks() {
     const tasks = this.extractTasks();
     
+    // Remove duplicates based on text content
+    const uniqueTasks = tasks.filter((task, index, self) => 
+      index === self.findIndex(t => t.text.toLowerCase().trim() === task.text.toLowerCase().trim())
+    );
+    
+    console.log(`[ActionLayer3] Found ${tasks.length} total tasks, ${uniqueTasks.length} unique tasks`);
+    
     // Store extracted tasks
     chrome.storage.local.get(['tasks'], (result) => {
       const existingTasks = result.tasks || [];
@@ -690,12 +710,12 @@ class ActionLayer3ContentScript {
         task.source === 'manual' || task.url !== currentUrl
       );
       
-      // Add new extracted tasks
-      const allTasks = [...filteredTasks, ...tasks];
+      // Add new unique extracted tasks
+      const allTasks = [...filteredTasks, ...uniqueTasks];
       
       chrome.storage.local.set({ tasks: allTasks }, () => {
         this.loadTasks();
-        console.log(`[ActionLayer3] Extracted ${tasks.length} tasks from page`);
+        console.log(`[ActionLayer3] Extracted ${uniqueTasks.length} unique tasks from page`);
       });
     });
   }

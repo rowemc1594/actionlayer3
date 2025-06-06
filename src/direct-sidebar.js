@@ -197,6 +197,13 @@ function extractAndDisplayTasks() {
   // Extract tasks from current page
   const extractedTasks = extractTasksFromPage();
   
+  // Remove duplicates based on text content
+  const uniqueTasks = extractedTasks.filter((task, index, self) => 
+    index === self.findIndex(t => t.text.toLowerCase().trim() === task.text.toLowerCase().trim())
+  );
+  
+  console.log(`[ActionLayer3] Found ${extractedTasks.length} total tasks, ${uniqueTasks.length} unique tasks`);
+  
   // Load existing tasks and merge with extracted ones
   chrome.storage.local.get(['tasks'], (result) => {
     const existingTasks = result.tasks || [];
@@ -207,12 +214,12 @@ function extractAndDisplayTasks() {
       task.source === 'manual' || task.url !== currentUrl
     );
     
-    // Add new extracted tasks
-    const allTasks = [...filteredTasks, ...extractedTasks];
+    // Add new unique extracted tasks
+    const allTasks = [...filteredTasks, ...uniqueTasks];
     
     chrome.storage.local.set({ tasks: allTasks }, () => {
       loadTasks();
-      console.log(`[ActionLayer3] Extracted ${extractedTasks.length} tasks from page`);
+      console.log(`[ActionLayer3] Extracted ${uniqueTasks.length} unique tasks from page`);
     });
   });
 }
