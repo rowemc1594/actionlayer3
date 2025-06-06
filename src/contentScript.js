@@ -449,16 +449,15 @@ class ActionLayer3ContentScript {
   }
 
   /**
-   * Inject sidebar iframe into the page
+   * Inject sidebar directly into the page
    */
   injectSidebar() {
-    if (this.sidebarIframe) {
+    if (document.getElementById('actionlayer3-direct-sidebar')) {
       console.log('[ActionLayer3] Sidebar already exists, skipping injection');
       return;
     }
 
-    console.log('[ActionLayer3] Starting sidebar injection...');
-    console.log('[ActionLayer3] Document body exists:', !!document.body);
+    console.log('[ActionLayer3] Starting direct sidebar injection...');
     
     if (!document.body) {
       console.log('[ActionLayer3] Document body not ready, waiting...');
@@ -467,46 +466,230 @@ class ActionLayer3ContentScript {
     }
 
     try {
-      // Create iframe element
-      this.sidebarIframe = document.createElement('iframe');
-      this.sidebarIframe.id = 'actionlayer3-sidebar';
-      
-      const panelURL = chrome.runtime.getURL('src/ui/panel.html');
-      console.log('[ActionLayer3] Panel URL:', panelURL);
-      this.sidebarIframe.src = panelURL;
-      
-      // Style the iframe
-      this.sidebarIframe.style.cssText = `
-        position: fixed !important;
-        top: 0 !important;
-        right: 0 !important;
-        width: 300px !important;
-        height: 100vh !important;
-        border: none !important;
-        z-index: 10000 !important;
-        background: white !important;
-        box-shadow: -2px 0 10px rgba(0,0,0,0.1) !important;
-      `;
-
-      // Inject into page
-      document.body.appendChild(this.sidebarIframe);
-      this.sidebarVisible = true;
-
-      console.log('[ActionLayer3] Sidebar iframe injected successfully');
-      console.log('[ActionLayer3] Iframe element:', this.sidebarIframe);
-      
-      // Test if iframe loaded
-      this.sidebarIframe.onload = () => {
-        console.log('[ActionLayer3] Sidebar iframe loaded successfully');
-      };
-      
-      this.sidebarIframe.onerror = (error) => {
-        console.error('[ActionLayer3] Sidebar iframe failed to load:', error);
-      };
-      
+      this.createDirectSidebar();
+      console.log('[ActionLayer3] Direct sidebar injected successfully');
     } catch (error) {
       console.error('[ActionLayer3] Error injecting sidebar:', error);
     }
+  }
+
+  /**
+   * Create direct sidebar without iframe
+   */
+  createDirectSidebar() {
+    // Inject CSS if not already present
+    if (!document.getElementById('actionlayer3-styles')) {
+      const style = document.createElement('style');
+      style.id = 'actionlayer3-styles';
+      style.textContent = `
+        #actionlayer3-direct-sidebar {
+          position: fixed !important;
+          top: 0 !important;
+          right: 0 !important;
+          width: 300px !important;
+          height: 100vh !important;
+          background: white !important;
+          border-left: 1px solid #ddd !important;
+          box-shadow: -2px 0 10px rgba(0,0,0,0.1) !important;
+          z-index: 10000 !important;
+          padding: 10px !important;
+          overflow-y: auto !important;
+          font-family: Arial, sans-serif !important;
+          font-size: 14px !important;
+        }
+        .actionlayer3-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .actionlayer3-title { margin: 0; font-size: 18px; color: #333; }
+        .actionlayer3-close { background: #ff4444; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
+        .actionlayer3-buttons { margin-bottom: 15px; }
+        .actionlayer3-btn { border: none; padding: 8px 12px; border-radius: 3px; cursor: pointer; margin-right: 5px; }
+        .actionlayer3-btn-primary { background: #007acc; color: white; }
+        .actionlayer3-btn-success { background: #28a745; color: white; }
+        .actionlayer3-btn-info { background: #17a2b8; color: white; width: 100%; }
+        .actionlayer3-input-group { margin-bottom: 15px; }
+        .actionlayer3-input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px; box-sizing: border-box; margin-bottom: 5px; }
+        .actionlayer3-task-list { border: 1px solid #ddd; border-radius: 3px; max-height: 200px; overflow-y: auto; }
+        .actionlayer3-task-item { padding: 8px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .actionlayer3-task-text { flex: 1; }
+        .actionlayer3-task-completed { text-decoration: line-through; color: #666; }
+        .actionlayer3-toggle-btn { color: white; border: none; padding: 2px 6px; border-radius: 2px; cursor: pointer; font-size: 12px; }
+        .actionlayer3-toggle-completed { background: #28a745; }
+        .actionlayer3-toggle-pending { background: #6c757d; }
+        .actionlayer3-empty-state { padding: 10px; color: #666; text-align: center; }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Create sidebar container
+    const sidebar = document.createElement('div');
+    sidebar.id = 'actionlayer3-direct-sidebar';
+    
+    // Add content with CSS classes
+    sidebar.innerHTML = `
+      <div class="actionlayer3-header">
+        <h2 class="actionlayer3-title">ActionLayer3</h2>
+        <button id="actionlayer3-close" class="actionlayer3-close">×</button>
+      </div>
+      
+      <div class="actionlayer3-buttons">
+        <button id="actionlayer3-refresh" class="actionlayer3-btn actionlayer3-btn-primary">Refresh Tasks</button>
+        <button id="actionlayer3-save" class="actionlayer3-btn actionlayer3-btn-success">Save Memory</button>
+      </div>
+      
+      <div class="actionlayer3-input-group">
+        <input type="text" id="actionlayer3-task-input" placeholder="Add a task..." class="actionlayer3-input">
+        <button id="actionlayer3-add-task" class="actionlayer3-btn actionlayer3-btn-info">Add Task</button>
+      </div>
+      
+      <div id="actionlayer3-task-list" class="actionlayer3-task-list">
+        <div class="actionlayer3-empty-state">Loading tasks...</div>
+      </div>
+    `;
+    
+    // Add to page
+    document.body.appendChild(sidebar);
+    
+    // Setup event listeners
+    this.setupSidebarEvents(sidebar);
+    
+    // Load tasks
+    this.loadTasks();
+  }
+
+  /**
+   * Setup sidebar event listeners
+   */
+  setupSidebarEvents(sidebar) {
+    // Close button
+    const closeBtn = sidebar.querySelector('#actionlayer3-close');
+    closeBtn.addEventListener('click', () => {
+      sidebar.style.display = 'none';
+    });
+    
+    // Add task button
+    const addBtn = sidebar.querySelector('#actionlayer3-add-task');
+    const taskInput = sidebar.querySelector('#actionlayer3-task-input');
+    
+    addBtn.addEventListener('click', () => {
+      const text = taskInput.value.trim();
+      if (text) {
+        this.addTask(text);
+        taskInput.value = '';
+      }
+    });
+    
+    taskInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        addBtn.click();
+      }
+    });
+    
+    // Refresh button
+    const refreshBtn = sidebar.querySelector('#actionlayer3-refresh');
+    refreshBtn.addEventListener('click', () => {
+      this.extractAndDisplayTasks();
+    });
+  }
+
+  /**
+   * Add a manual task
+   */
+  addTask(text) {
+    const task = {
+      id: 'manual_' + Date.now(),
+      text: text,
+      completed: false,
+      source: 'manual',
+      url: window.location.href,
+      extractedAt: new Date().toISOString()
+    };
+    
+    chrome.storage.local.get(['tasks'], (result) => {
+      const tasks = result.tasks || [];
+      tasks.push(task);
+      chrome.storage.local.set({ tasks: tasks }, () => {
+        this.loadTasks();
+        console.log('[ActionLayer3] Task added:', task.text);
+      });
+    });
+  }
+
+  /**
+   * Load and display tasks
+   */
+  loadTasks() {
+    chrome.storage.local.get(['tasks'], (result) => {
+      const tasks = result.tasks || [];
+      const taskList = document.querySelector('#actionlayer3-task-list');
+      
+      if (!taskList) return;
+      
+      if (tasks.length === 0) {
+        taskList.innerHTML = '<div class="actionlayer3-empty-state">No tasks found</div>';
+        return;
+      }
+      
+      const taskHTML = tasks.map(task => `
+        <div class="actionlayer3-task-item">
+          <span class="actionlayer3-task-text ${task.completed ? 'actionlayer3-task-completed' : ''}">${task.text}</span>
+          <button data-task-id="${task.id}" class="actionlayer3-toggle-btn ${task.completed ? 'actionlayer3-toggle-completed' : 'actionlayer3-toggle-pending'}">
+            ${task.completed ? '✓' : '○'}
+          </button>
+        </div>
+      `).join('');
+      
+      taskList.innerHTML = taskHTML;
+      
+      // Add event listeners to toggle buttons
+      taskList.querySelectorAll('.actionlayer3-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const taskId = e.target.getAttribute('data-task-id');
+          this.toggleTask(taskId);
+        });
+      });
+    });
+  }
+
+  /**
+   * Toggle task completion
+   */
+  toggleTask(taskId) {
+    chrome.storage.local.get(['tasks'], (result) => {
+      const tasks = result.tasks || [];
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        task.completed = !task.completed;
+        chrome.storage.local.set({ tasks: tasks }, () => {
+          this.loadTasks();
+          console.log('[ActionLayer3] Task toggled:', task.text);
+        });
+      }
+    });
+  }
+
+  /**
+   * Extract and display tasks from current page
+   */
+  extractAndDisplayTasks() {
+    const tasks = this.extractTasks();
+    
+    // Store extracted tasks
+    chrome.storage.local.get(['tasks'], (result) => {
+      const existingTasks = result.tasks || [];
+      const currentUrl = window.location.href;
+      
+      // Remove old extracted tasks from this URL
+      const filteredTasks = existingTasks.filter(task => 
+        task.source === 'manual' || task.url !== currentUrl
+      );
+      
+      // Add new extracted tasks
+      const allTasks = [...filteredTasks, ...tasks];
+      
+      chrome.storage.local.set({ tasks: allTasks }, () => {
+        this.loadTasks();
+        console.log(`[ActionLayer3] Extracted ${tasks.length} tasks from page`);
+      });
+    });
   }
 
   /**
