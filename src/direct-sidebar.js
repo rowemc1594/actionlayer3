@@ -66,7 +66,10 @@ function createDirectSidebar() {
   // Add content with CSS classes
   sidebar.innerHTML = `
     <div class="actionlayer3-header">
-      <h2 class="actionlayer3-title">ActionLayer3</h2>
+      <div>
+        <h2 class="actionlayer3-title">ActionLayer3</h2>
+        <div style="font-size: 10px; color: #888; margin-top: -5px;">v2.1.0</div>
+      </div>
       <button id="actionlayer3-close" class="actionlayer3-close">×</button>
     </div>
     
@@ -194,15 +197,21 @@ function refreshTasks() {
 }
 
 function extractAndDisplayTasks() {
+  console.log('[ActionLayer3] v2.1.0 - Starting enhanced task extraction...');
+  
   // Extract tasks from current page
   const extractedTasks = extractTasksFromPage();
+  
+  // Log task details for debugging
+  console.log('[ActionLayer3] Raw extracted tasks:', extractedTasks.map(t => t.text.substring(0, 50) + '...'));
   
   // Remove duplicates based on text content
   const uniqueTasks = extractedTasks.filter((task, index, self) => 
     index === self.findIndex(t => t.text.toLowerCase().trim() === task.text.toLowerCase().trim())
   );
   
-  console.log(`[ActionLayer3] Found ${extractedTasks.length} total tasks, ${uniqueTasks.length} unique tasks`);
+  console.log(`[ActionLayer3] v2.1.0 - Found ${extractedTasks.length} total tasks, ${uniqueTasks.length} unique tasks`);
+  console.log('[ActionLayer3] Unique task texts:', uniqueTasks.map(t => t.text.substring(0, 80)));
   
   // Load existing tasks and merge with extracted ones
   chrome.storage.local.get(['tasks'], (result) => {
@@ -219,7 +228,7 @@ function extractAndDisplayTasks() {
     
     chrome.storage.local.set({ tasks: allTasks }, () => {
       loadTasks();
-      console.log(`[ActionLayer3] Extracted ${uniqueTasks.length} unique tasks from page`);
+      console.log(`[ActionLayer3] v2.1.0 - Successfully stored ${uniqueTasks.length} unique tasks`);
     });
   });
 }

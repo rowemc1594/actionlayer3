@@ -540,7 +540,10 @@ class ActionLayer3ContentScript {
     // Add content with CSS classes
     sidebar.innerHTML = `
       <div class="actionlayer3-header">
-        <h2 class="actionlayer3-title">ActionLayer3</h2>
+        <div>
+          <h2 class="actionlayer3-title">ActionLayer3</h2>
+          <div style="font-size: 10px; color: #888; margin-top: -5px;">v2.1.0</div>
+        </div>
         <button id="actionlayer3-close" class="actionlayer3-close">×</button>
       </div>
       
@@ -691,14 +694,19 @@ class ActionLayer3ContentScript {
    * Extract and display tasks from current page
    */
   extractAndDisplayTasks() {
+    console.log('[ActionLayer3] v2.1.0 - Starting enhanced task extraction...');
     const tasks = this.extractTasks();
+    
+    // Log task details for debugging
+    console.log('[ActionLayer3] Raw extracted tasks:', tasks.map(t => t.text.substring(0, 50) + '...'));
     
     // Remove duplicates based on text content
     const uniqueTasks = tasks.filter((task, index, self) => 
       index === self.findIndex(t => t.text.toLowerCase().trim() === task.text.toLowerCase().trim())
     );
     
-    console.log(`[ActionLayer3] Found ${tasks.length} total tasks, ${uniqueTasks.length} unique tasks`);
+    console.log(`[ActionLayer3] v2.1.0 - Found ${tasks.length} total tasks, ${uniqueTasks.length} unique tasks`);
+    console.log('[ActionLayer3] Unique task texts:', uniqueTasks.map(t => t.text.substring(0, 80)));
     
     // Store extracted tasks
     chrome.storage.local.get(['tasks'], (result) => {
@@ -715,7 +723,7 @@ class ActionLayer3ContentScript {
       
       chrome.storage.local.set({ tasks: allTasks }, () => {
         this.loadTasks();
-        console.log(`[ActionLayer3] Extracted ${uniqueTasks.length} unique tasks from page`);
+        console.log(`[ActionLayer3] v2.1.0 - Successfully stored ${uniqueTasks.length} unique tasks`);
       });
     });
   }
