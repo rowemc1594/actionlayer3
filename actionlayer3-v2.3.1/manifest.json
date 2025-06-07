@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "ActionLayer3",
+  "version": "2.3.1",
+  "description": "Intelligent task management and memory management Chrome extension with web page interaction capabilities",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs",
+    "scripting",
+    "contextMenus",
+    "notifications"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*",
+    "https://api.openai.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://chat.openai.com/*"],
+      "js": ["src/contentScript.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_title": "ActionLayer3",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["src/ui/panel.html", "src/ui/popup.js", "tasks/*", "memory/*", "utils/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

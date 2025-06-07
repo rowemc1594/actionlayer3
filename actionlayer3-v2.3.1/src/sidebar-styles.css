@@ -1,0 +1,127 @@
+#actionlayer3-direct-sidebar {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 300px !important;
+  height: 100vh !important;
+  background: white !important;
+  border-left: 1px solid #ddd !important;
+  box-shadow: -2px 0 10px rgba(0,0,0,0.1) !important;
+  z-index: 10000 !important;
+  padding: 10px !important;
+  overflow-y: auto !important;
+  font-family: Arial, sans-serif !important;
+  font-size: 14px !important;
+}
+
+.actionlayer3-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.actionlayer3-title {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.actionlayer3-close {
+  background: #ff4444;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.actionlayer3-buttons {
+  margin-bottom: 15px;
+}
+
+.actionlayer3-btn {
+  border: none;
+  padding: 8px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-right: 5px;
+}
+
+.actionlayer3-btn-primary {
+  background: #007acc;
+  color: white;
+}
+
+.actionlayer3-btn-success {
+  background: #28a745;
+  color: white;
+}
+
+.actionlayer3-btn-info {
+  background: #17a2b8;
+  color: white;
+  width: 100%;
+}
+
+.actionlayer3-input-group {
+  margin-bottom: 15px;
+}
+
+.actionlayer3-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  box-sizing: border-box;
+  margin-bottom: 5px;
+}
+
+.actionlayer3-task-list {
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.actionlayer3-task-item {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.actionlayer3-task-text {
+  flex: 1;
+}
+
+.actionlayer3-task-completed {
+  text-decoration: line-through;
+  color: #666;
+}
+
+.actionlayer3-toggle-btn {
+  color: white;
+  border: none;
+  padding: 2px 6px;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.actionlayer3-toggle-completed {
+  background: #28a745;
+}
+
+.actionlayer3-toggle-pending {
+  background: #6c757d;
+}
+
+.actionlayer3-empty-state {
+  padding: 10px;
+  color: #666;
+  text-align: center;
+}
