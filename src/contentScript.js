@@ -164,8 +164,10 @@ class ActionLayer3ContentScript {
           title: document.title,
           domain: window.location.hostname
         }
-      }).catch(error => {
-        console.error('[ActionLayer3] Failed to send tasks to background:', error);
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('[ActionLayer3] Runtime error sending tasks:', chrome.runtime.lastError);
+        }
       });
 
       return tasks;
@@ -289,8 +291,16 @@ class ActionLayer3ContentScript {
    */
   async getOpenAIKey() {
     try {
-      const response = await chrome.runtime.sendMessage({ action: 'getOpenAIKey' });
-      return response?.apiKey || '';
+      return new Promise((resolve) => {
+        chrome.runtime.sendMessage({ action: 'getOpenAIKey' }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('[ActionLayer3] Runtime error getting API key:', chrome.runtime.lastError);
+            resolve('');
+            return;
+          }
+          resolve(response?.apiKey || '');
+        });
+      });
     } catch (error) {
       console.error('[ActionLayer3] Failed to get OpenAI key:', error);
       return '';

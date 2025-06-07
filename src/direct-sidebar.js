@@ -129,8 +129,8 @@ function setupSidebarEvents(sidebar) {
   
   // Refresh button
   const refreshBtn = sidebar.querySelector('#actionlayer3-refresh');
-  refreshBtn.addEventListener('click', () => {
-    refreshTasks();
+  refreshBtn.addEventListener('click', async () => {
+    await refreshTasks();
   });
   
   // Clear button
@@ -191,9 +191,9 @@ function loadTasks() {
   });
 }
 
-function refreshTasks() {
+async function refreshTasks() {
   console.log('[ActionLayer3] Refreshing tasks...');
-  extractAndDisplayTasks();
+  await extractAndDisplayTasks();
 }
 
 async function extractAndDisplayTasks() {
@@ -342,8 +342,16 @@ function getPageContent() {
 
 async function getOpenAIKey() {
   try {
-    const response = await chrome.runtime.sendMessage({ action: 'getOpenAIKey' });
-    return response?.apiKey || '';
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage({ action: 'getOpenAIKey' }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('[ActionLayer3] Runtime error getting API key:', chrome.runtime.lastError);
+          resolve('');
+          return;
+        }
+        resolve(response?.apiKey || '');
+      });
+    });
   } catch (error) {
     console.error('[ActionLayer3] Failed to get OpenAI key:', error);
     return '';
