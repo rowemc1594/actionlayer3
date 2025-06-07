@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ActionLayer3",
-  "version": "2.1.0",
+  "version": "2.3.0",
   "description": "Intelligent task management and memory management Chrome extension with web page interaction capabilities",
   "permissions": [
     "storage",
