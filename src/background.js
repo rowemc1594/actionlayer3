@@ -196,6 +196,11 @@ class ActionLayer3Background {
           sendResponse({ success: true });
           break;
 
+        case 'getOpenAIKey':
+          const apiKey = this.getStoredAPIKey();
+          sendResponse({ apiKey });
+          break;
+
         default:
           sendResponse({ error: 'Unknown action' });
       }
@@ -488,6 +493,14 @@ class ActionLayer3Background {
       console.error('[ActionLayer3] Failed to update settings:', error);
       throw error;
     }
+  }
+
+  /**
+   * Get stored API key
+   */
+  getStoredAPIKey() {
+    // Use environment variable from Replit
+    return process.env.OPENAI_API_KEY || '';
   }
 
   /**

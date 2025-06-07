@@ -138,26 +138,20 @@ class ActionLayer3ContentScript {
   }
 
   /**
-   * Extract tasks from the current page
+   * Extract tasks from the current page using AI
    */
-  extractTasks() {
+  async extractTasks() {
     try {
-      console.log('[ActionLayer3] Starting task extraction...');
-      const tasks = [];
-      const taskElements = this.findTaskElements();
-      console.log('[ActionLayer3] Found', taskElements.length, 'potential task elements');
+      console.log('[ActionLayer3] Starting AI-powered task extraction...');
       
-      taskElements.forEach((element, index) => {
-        console.log('[ActionLayer3] Processing element:', element.tagName, element.textContent?.substring(0, 50));
-        const task = this.parseTaskElement(element, index);
-        if (task) {
-          console.log('[ActionLayer3] Created task:', task.text);
-          tasks.push(task);
-          this.taskElements.set(task.id, element);
-        } else {
-          console.log('[ActionLayer3] Element rejected during parsing');
-        }
-      });
+      // Try AI extraction first
+      let tasks = await this.extractTasksWithAI();
+      
+      // Fallback to pattern matching if AI fails
+      if (!tasks || tasks.length === 0) {
+        console.log('[ActionLayer3] AI extraction failed, using pattern matching fallback...');
+        tasks = this.extractTasksWithPatterns();
+      }
 
       console.log('[ActionLayer3] Final task count:', tasks.length);
 
@@ -179,6 +173,147 @@ class ActionLayer3ContentScript {
       console.error('[ActionLayer3] Task extraction failed:', error);
       return [];
     }
+  }
+
+  /**
+   * Get clean page content for AI analysis
+   */
+  getPageContent() {
+    // Get main content, excluding navigation and sidebar elements
+    const excludeSelectors = [
+      'nav', 'header', 'footer', 'aside', '.sidebar', '.menu', 
+      '.navigation', '.ads', '.advertisement', '.cookie', '.popup',
+      'script', 'style', 'noscript'
+    ];
+    
+    // Clone the document to avoid modifying the original
+    const clone = document.cloneNode(true);
+    
+    // Remove excluded elements
+    excludeSelectors.forEach(selector => {
+      const elements = clone.querySelectorAll(selector);
+      elements.forEach(el => el.remove());
+    });
+    
+    // Get text content, limiting to reasonable size for API
+    let content = clone.body ? clone.body.innerText : clone.innerText || '';
+    
+    // Clean up whitespace and limit content
+    content = content.replace(/\s+/g, ' ').trim();
+    
+    // Limit to ~8000 characters to stay within API limits
+    if (content.length > 8000) {
+      content = content.substring(0, 8000) + '...';
+    }
+    
+    return content;
+  }
+
+  /**
+   * Extract tasks using OpenAI API
+   */
+  async extractTasksWithAI(content = null) {
+    try {
+      const apiKey = await this.getOpenAIKey();
+      if (!apiKey) {
+        console.log('[ActionLayer3] No OpenAI API key available');
+        return [];
+      }
+
+      const pageContent = content || this.getPageContent();
+      if (!pageContent.trim()) {
+        console.log('[ActionLayer3] No content to analyze');
+        return [];
+      }
+
+      console.log('[ActionLayer3] Analyzing content with OpenAI...', pageContent.length, 'characters');
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+          messages: [
+            {
+              role: "system",
+              content: "You are a task extraction expert. Analyze the given webpage content and identify actionable tasks, to-dos, instructions, or action items. Return a JSON array of tasks with format: [{\"text\": \"task description\", \"completed\": false, \"type\": \"task\", \"confidence\": 0.9}]. Focus on:\n1. Explicit to-do items\n2. Action verbs (create, update, fix, implement, etc.)\n3. Step-by-step instructions\n4. Requirements or specifications\n5. Deadlines or time-sensitive items\n\nExclude navigation, headers, footers, and promotional content. Return only the JSON array, no additional text."
+            },
+            {
+              role: "user", 
+              content: `Analyze this webpage content and extract actionable tasks:\n\n${pageContent}`
+            }
+          ],
+          response_format: { type: "json_object" },
+          max_tokens: 1000,
+          temperature: 0.3
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      let result = JSON.parse(data.choices[0].message.content);
+      
+      // Handle both direct array and object with tasks property
+      let extractedTasks = Array.isArray(result) ? result : (result.tasks || []);
+      
+      // Process and format tasks
+      const tasks = extractedTasks.map((task, index) => ({
+        id: `ai-task-${Date.now()}-${index}`,
+        text: task.text || task.description || '',
+        completed: task.completed || false,
+        type: 'ai-extracted',
+        confidence: task.confidence || 0.8,
+        source: 'openai',
+        extractedAt: new Date().toISOString(),
+        url: window.location.href,
+        selector: null
+      })).filter(task => task.text && task.text.length > 10);
+
+      console.log('[ActionLayer3] AI extracted', tasks.length, 'tasks');
+      return tasks;
+
+    } catch (error) {
+      console.error('[ActionLayer3] AI task extraction failed:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get OpenAI API key from background script
+   */
+  async getOpenAIKey() {
+    try {
+      const response = await chrome.runtime.sendMessage({ action: 'getOpenAIKey' });
+      return response?.apiKey || '';
+    } catch (error) {
+      console.error('[ActionLayer3] Failed to get OpenAI key:', error);
+      return '';
+    }
+  }
+
+  /**
+   * Extract tasks using pattern matching (fallback)
+   */
+  extractTasksWithPatterns() {
+    const tasks = [];
+    const taskElements = this.findTaskElements();
+    console.log('[ActionLayer3] Found', taskElements.length, 'potential task elements');
+    
+    taskElements.forEach((element, index) => {
+      const task = this.parseTaskElement(element, index);
+      if (task) {
+        tasks.push(task);
+        this.taskElements.set(task.id, element);
+      }
+    });
+
+    return tasks;
   }
 
   /**
