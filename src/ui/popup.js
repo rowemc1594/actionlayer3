@@ -259,7 +259,17 @@ class ActionLayer3Popup {
     tasks.forEach((task) => {
       const li = document.createElement("li");
       li.textContent = task.text;
-      li.addEventListener("click", () => chrome.tabs.create({ url: task.pageUrl }));
+
+      // Tasks created by other parts of the extension use the `url` field.
+      // Older tasks may still store `pageUrl`, so support both to avoid
+      // opening a blank tab when `pageUrl` is undefined.
+      const targetUrl = task.url || task.pageUrl || undefined;
+      if (targetUrl) {
+        li.addEventListener("click", () =>
+          chrome.tabs.create({ url: targetUrl })
+        );
+      }
+
       this.taskList.appendChild(li);
     });
   }
